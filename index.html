@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Junk Capacity Planner V1</title>
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--line:#d8dfeb;--text:#1d2433;--muted:#5f6b85;--accent:#7a0019;--accent2:#334766;--green:#dff3e5;--yellow:#fff3cc;--red:#ffdede;--greenText:#155d34;--yellowText:#7a5a00;--redText:#8a1f1f}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1700px;margin:0 auto;padding:18px}.hero{background:linear-gradient(135deg,var(--accent),#9d1d1d);color:#fff;border-radius:16px;padding:18px 22px;margin-bottom:14px}
+.hero h1{margin:0 0 6px;font-size:28px}.hero p{margin:0;line-height:1.4}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}.grid{display:grid;grid-template-columns:320px 1fr;gap:14px}.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.six{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.card .t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.card .v{font-size:24px;font-weight:800;margin-top:4px}
+input,select,textarea,button{font:inherit} input,select,textarea{width:100%;padding:8px 9px;border:1px solid #c8d1e2;border-radius:9px;background:#fff} textarea{min-height:90px;resize:vertical} button{border:0;border-radius:10px;padding:10px 14px;background:var(--accent2);color:#fff;font-weight:700;cursor:pointer} button.secondary{background:#eef2f8;color:#2e3c58;border:1px solid var(--line)} button.good{background:#1f7a46}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tab-btn{background:#e8edf7;color:#28344e}.tab-btn.active{background:var(--accent2);color:#fff}.tab{display:none}.tab.active{display:block}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.small{font-size:12px;color:var(--muted);line-height:1.4}.status{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:800;font-size:12px}.green{background:var(--green);color:var(--greenText)}.yellow{background:var(--yellow);color:var(--yellowText)}.red{background:var(--red);color:var(--redText)}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden} th,td{padding:8px 9px;border-bottom:1px solid #e9edf5;text-align:center;vertical-align:middle} th{background:#f1f4fa;color:#33415f;font-size:12px;text-transform:uppercase;letter-spacing:.04em} tr:last-child td{border-bottom:0}.left{text-align:left}.num{text-align:right}.mix{display:block;font-size:11px;color:#7a0019;margin-top:3px;font-weight:700}.subnote{display:block;font-size:10px;color:#6b7386;margin-top:2px}.cell-edit{width:88px;text-align:right}.changed-cell{background:#fff3cc !important;border:2px solid #e0ad00 !important;font-weight:700}.banner-note{background:#fff8db;border:1px solid #f0d36d;border-radius:10px;padding:10px 12px;margin-bottom:10px;color:#6b5200;font-size:12px}.month-focus{outline:3px solid #334766;background:#f5f9ff !important}.mix.hidden-mix{display:none}
+.hidden{display:none}.login-wrap{max-width:480px;margin:70px auto}.login-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px}.login-card h2{margin-top:0}.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:12px 0}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.cal-day{border:1px solid var(--line);border-radius:10px;padding:8px;min-height:90px;background:#fff;cursor:pointer}.cal-day .n{font-weight:800;margin-bottom:6px}.cal-day.empty{background:transparent;border-style:dashed;cursor:default}.risk-dot{display:inline-block;width:10px;height:10px;border-radius:999px;margin-right:6px}.dot-green{background:#1f7a46}.dot-yellow{background:#b38600}.dot-red{background:#b42318}
+@media (max-width:1200px){.grid,.split,.three,.four,.six,.kpis{grid-template-columns:1fr}}
+
+.alloc-wrap{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.alloc-grid{display:grid;grid-template-columns:1.15fr .95fr;gap:12px}
+.alloc-table input{width:100%;padding:6px}
+.alloc-btn{margin-left:6px;padding:2px 6px;font-size:11px}
+.alloc-note{font-size:12px;color:var(--muted)}
+.alloc-health{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.alloc-health .card{min-height:72px}
+.changed-cell-gold{background:#ffe79b !important}
+.error-row{background:#fff1f1}
+.ok-row{background:#f3fff5}
+
+</style>
+</head>
+<body>
+<!-- Login screen removed for Phase 0 testing. Re-enable by removing `hidden` and deleting the auto-login block near the bottom of the script. -->
+<div id="loginView" class="login-wrap hidden">
+  <div class="login-card">
+    <h2>Junk Capacity Planner V1</h2>
+    <p class="small">Log in with your role. Default passwords remain simple so you can test quickly.</p>
+    <div style="display:grid;gap:10px">
+      <div><label>Username</label><input id="loginUser" placeholder="tonya / gabe / yana / admin"></div>
+      <div><label>Password</label><input id="loginPass" type="password" placeholder="password"></div>
+      <button onclick="login()">Log In</button>
+      <div id="loginMsg" class="small"></div>
+    </div>
+  </div>
+</div>
+<div id="appView">
+<div class="wrap">
+  <div class="hero">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+      <div>
+        <h1>Junk Capacity Planner V1</h1>
+        <p>Capacity planning tied to live Business Central data. Same workflow as V20, now backed by the BC refresh pipeline.</p>
+      </div>
+      <div><span id="whoami" class="status green"></span></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <section id="tab-exec" class="tab active">
+    <div class="panel" id="bcLivePanel">
+      <div class="toolbar">
+        <h2 style="margin:0">BC Live Demand</h2>
+        <span id="bcLastRefreshed" class="small">Loading bc_data.json…</span>
+      </div>
+      <div class="three">
+        <div class="card"><div class="t">ECOM × BBL — Next 30 Days</div><div class="v" id="bcLiveEcomBbl30">—</div></div>
+        <div class="card"><div class="t">BC Target</div><div class="v" id="bcLiveTarget" style="font-size:16px">—</div></div>
+        <div class="card"><div class="t">Warnings</div><div class="v" id="bcLiveWarnings" style="font-size:16px">—</div></div>
+      </div>
+      <div class="small" style="margin-top:6px">Phase 0 vertical slice. Other channels + styles will light up in Phase 1.</div>
+    </div>
+    <div class="panel">
+      <div class="toolbar">
+        <h2 style="margin:0">Executive Snapshot</h2>
+        <label>Month <select id="execMonthSel" onchange="renderExecutiveSnapshot()"></select></label>
+      </div>
+      <div class="kpis">
+        <div class="card"><div class="t">Forecast Units</div><div class="v" id="execForecastUnits">0</div></div>
+        <div class="card"><div class="t">Forecast Hours</div><div class="v" id="execForecastHours">0</div></div>
+        <div class="card"><div class="t">Actual Units</div><div class="v" id="execActualUnits">0</div></div>
+        <div class="card"><div class="t">Actual Hours</div><div class="v" id="execActualHours">0</div></div>
+        <div class="card"><div class="t">Plan Attainment</div><div class="v" id="execAttain">0%</div></div>
+        <div class="card"><div class="t">Risk Days</div><div class="v" id="execRiskDays">0</div></div>
+      </div>
+      <table id="execDeptTable"><thead><tr><th class="left">Department</th><th>Req. Hours</th><th>Avail. Hours</th><th>Req. People / Day</th><th>Avail. People / Day</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section id="tab-forecast" class="tab">
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Baseline Sales Forecast</h2><div class="small">Locked baseline forecast. Each month now shows units plus mix % of the channel total, with year-end % at the far right. This page does not drive planning.</div></div><div class="banner-note">Baseline = static original forecast. Dynamic Forecast is the live planning driver.</div>
+      <table id="forecastTable"><thead><tr><th class="left">Channel</th><th class="left">Style</th><th>Jan<br><span class="subnote">Units / Mix%</span></th><th>Feb<br><span class="subnote">Units / Mix%</span></th><th>Mar<br><span class="subnote">Units / Mix%</span></th><th>Apr<br><span class="subnote">Units / Mix%</span></th><th>May<br><span class="subnote">Units / Mix%</span></th><th>Jun<br><span class="subnote">Units / Mix%</span></th><th>Jul<br><span class="subnote">Units / Mix%</span></th><th>Aug<br><span class="subnote">Units / Mix%</span></th><th>Sep<br><span class="subnote">Units / Mix%</span></th><th>Oct<br><span class="subnote">Units / Mix%</span></th><th>Nov<br><span class="subnote">Units / Mix%</span></th><th>Dec<br><span class="subnote">Units / Mix%</span></th><th>Total</th><th class="pct-col">Yr %</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section id="tab-forecastlive" class="tab">
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Dynamic Forecast</h2><div class="small">Editable live forecast. Changed month cells turn yellow and this tab drives Executive Snapshot, Daily Planner, and Weekly Summary.</div><label>Focus Month <select id="focusMonthSel" onchange="setFocusMonth(this.value)"><option value="">Show all</option><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option></select></label><button class="secondary" onclick="resetAllDynamicForecast()">Reset Dynamic to Original Forecast</button></div><div class="banner-note">Dynamic Forecast = live operating forecast. Click into a month cell to type normally, then press Enter or click out to save. Focus Month shows product mix only for the month you are working on.</div>
+      <table id="forecastLiveTable"><thead><tr><th class="left">Channel</th><th class="left">Style</th><th>Jan<br><span class="subnote">Units / Mix%</span></th><th>Feb<br><span class="subnote">Units / Mix%</span></th><th>Mar<br><span class="subnote">Units / Mix%</span></th><th>Apr<br><span class="subnote">Units / Mix%</span></th><th>May<br><span class="subnote">Units / Mix%</span></th><th>Jun<br><span class="subnote">Units / Mix%</span></th><th>Jul<br><span class="subnote">Units / Mix%</span></th><th>Aug<br><span class="subnote">Units / Mix%</span></th><th>Sep<br><span class="subnote">Units / Mix%</span></th><th>Oct<br><span class="subnote">Units / Mix%</span></th><th>Nov<br><span class="subnote">Units / Mix%</span></th><th>Dec<br><span class="subnote">Units / Mix%</span></th><th>Total</th><th class="pct-col">Yr %</th></tr></thead><tbody></tbody></table>
+      <div class="panel" style="margin-top:12px">
+        <div class="toolbar"><h3 style="margin:0">Forecast Drill Down</h3><div class="small">Click <b>Plan</b> on any monthly dynamic cell, then allocate that exact channel + style + month by week and by day.</div></div>
+        <div class="four">
+          <div class="card"><div class="t">Selected Line</div><div class="v" id="allocSelected" style="font-size:18px">No monthly cell selected yet.</div></div>
+          <div class="card"><div class="t">Month Target</div><div class="v" id="allocMonthTarget">0</div></div>
+          <div class="card"><div class="t">Weeks Allocated</div><div class="v" id="allocWeeksAllocated">0</div></div>
+          <div class="card"><div class="t">Variance / Health</div><div class="v" id="allocVariance">0</div><div id="allocHealth"></div></div>
+        </div>
+        <div class="toolbar" style="margin-top:8px">
+          <div>
+            <label style="display:block" class="small">Month week range</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="allocWeekStart" readonly style="width:110px">
+              <input id="allocWeekEnd" readonly style="width:110px">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:end">
+            <button class="secondary" onclick="autoSplitWeeks()">Auto Split Weeks</button>
+            <button class="secondary" onclick="rebalanceWeeks()">Rebalance Weeks</button>
+            <button class="secondary" onclick="autoSplitDays()">Auto Split Days</button>
+            <button class="secondary" onclick="rebalanceDays()">Rebalance Days</button>
+          </div>
+        </div>
+        <div class="split" style="margin-top:12px">
+          <div class="panel">
+            <h3 style="margin-top:0">Weekly Allocation</h3>
+            <table id="allocWeekTable"><thead><tr><th class="left">Week</th><th>Units</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0" id="allocWeekLabel">Select a week to allocate days.</h3>
+            <table id="allocDayTable"><thead><tr><th class="left">Date</th><th>Units</th><th>Req. Hrs</th><th>Avail. Hrs</th><th>Gap</th><th>Status</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:12px">
+          <h3 style="margin-top:0">Allocation Reconciliation</h3>
+          <table id="allocReconTable"><thead><tr><th class="left">Level</th><th>Target</th><th>Allocated</th><th>Variance</th><th>Status</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-planner" class="tab">
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <h2>Daily Planner Inputs</h2>
+          <div style="display:grid;gap:10px">
+            <div><label>Date</label><input type="date" id="plannerDate" onchange="renderDailyPlanner()"></div>
+            <div><label>Week in Year</label><input id="plannerWeek" readonly></div>
+            <div><label>Month Week Range</label><input id="plannerWeekRange" readonly></div>
+            <div><label>Month</label><input id="plannerMonth" readonly></div>
+            <div><label>Expected Units Override</label><input id="plannerUnitsOverride" type="number" min="0" step="1" placeholder="Leave blank for forecast" oninput="renderDailyPlanner()"></div>
+          </div>
+          <hr>
+          <div id="dailyStaffInputs"></div>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="toolbar"><h2 style="margin:0">Daily Capacity vs Need</h2><button class="secondary" onclick="savePlannerDay()">Save day to history</button></div><div class="banner-note">Planner is fed from the Dynamic Forecast, not the locked baseline.</div>
+          <div class="kpis">
+            <div class="card"><div class="t">Forecast Units</div><div class="v" id="dpUnits">0</div></div>
+            <div class="card"><div class="t">Required Hours</div><div class="v" id="dpReqHours">0</div></div>
+            <div class="card"><div class="t">Available Hours</div><div class="v" id="dpAvailHours">0</div></div>
+            <div class="card"><div class="t">Gap Hours</div><div class="v" id="dpGapHours">0</div></div>
+            <div class="card"><div class="t">Heads Short</div><div class="v" id="dpHeadsShort">0</div></div>
+            <div class="card"><div class="t">Overall Risk</div><div class="v" id="dpRisk">—</div></div>
+          </div>
+          <table id="dailyPlannerTable"><thead><tr><th class="left">Department</th><th>Req. Hours</th><th>Sched</th><th>Callouts</th><th>Net People</th><th>Avail. Hours</th><th>Gap</th><th>Status</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-weekly" class="tab">
+    <div class="panel">
+      <div class="toolbar">
+        <h2 style="margin:0">Weekly Summary</h2>
+        <label>View <select id="weeklyViewMode" onchange="renderWeeklySummary()"><option value="week">By Week</option><option value="range">Month Week Range</option><option value="month">By Month</option></select></label>
+        <label>Week <select id="weekSel" onchange="renderWeeklySummary()"></select></label>
+        <label>Month <select id="weekMonthSel" onchange="renderWeeklySummary()"></select></label>
+      </div><div class="banner-note" id="weeklyBannerNote">Weekly Summary is fed from the Dynamic Forecast and can be reviewed by specific week, by the month\'s week span, or by full month.</div>
+      <table id="weeklySummaryTable"><thead><tr><th class="left">Department</th><th>Forecast Hours</th><th>Actual Hours</th><th>Forecast Units</th><th>Actual Units</th><th>Gap Hours</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Monthly Summary</h2><label>Month <select id="monthlySummarySel" onchange="renderMonthlySummary()"></select></label></div>
+      <table id="monthlySummaryTable"><thead><tr><th class="left">Department</th><th>Sales Expected</th><th>Sales Actual</th><th>Hours Forecast</th><th>Hours Actual</th><th>Attainment</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section id="tab-skills" class="tab">
+    <div class="split">
+      <div class="panel">
+        <div class="toolbar"><h2 style="margin:0">Employee Skills</h2><button onclick="addSkillRow()">Add employee</button></div>
+        <table id="skillsTable"><thead><tr><th class="left">Name</th><th class="left">Home Dept</th><th>Sew</th><th>Print</th><th>Press</th><th>Cut</th><th>Value Add</th><th>Hang Tag</th><th>Star</th><th></th></tr></thead><tbody></tbody></table>
+        <div class="small">Levels are 1, 2, 3. The capacity model uses the logic you chose: level 1 = 50%, level 2 = 100%, level 3 = 110%.</div>
+      </div>
+      <div class="panel">
+        <h2>Skills Capacity Summary</h2>
+        <table id="skillSummary"><thead><tr><th class="left">Department</th><th>Weighted Coverage</th><th>Level 1</th><th>Level 2</th><th>Level 3</th><th>Stars</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="tab-report" class="tab">
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Supervisor Daily Entry</h2><div><button class="secondary" onclick="loadReportFromPlanner()">Pull from Planner</button><button class="secondary" onclick="exportSupervisorJSON()">Export JSON</button><button class="secondary" onclick="submitDayToYana()">Submit Day to Yana</button><button onclick="saveDailyReport()">Save Day</button></div></div>
+      <div class="banner-note">Modeled from Yana’s daily report sheet. Date auto-populates, production and ship sections stay by channel, and this can be saved and submitted to Kim when complete.</div>
+      <div id="supervisorScopeNote" class="small" style="margin-top:8px;font-weight:700"></div>
+      <div class="five">
+        <div><label>Date</label><input type="date" id="reportDate"></div>
+        <div><label>Submitted By</label><select id="reportBy"><option>Tonya</option><option>Gabe</option><option>Yana</option><option>Kim</option></select></div>
+        <div><label>Risk</label><select id="reportRisk"><option>Green</option><option>Yellow</option><option>Red</option></select></div>
+        <div><label>Week</label><input id="reportWeek" readonly></div>
+        <div><label>Month</label><input id="reportMonth" readonly></div>
+      </div>
+      <div class="five" style="margin-top:10px">
+        <div><label>Send To</label><input id="reportRecipients" value="kimj3341@gmail.com"></div>
+        <div><label>Sales Expected</label><input id="reportExpectedSales" type="number"></div>
+        <div><label>Sales Actual</label><input id="reportActualSales" type="number"></div>
+        <div><label>Hours Actual</label><input id="reportHoursActual" type="number" step="0.1"></div>
+        <div><label>Status Note</label><input id="reportHeaderNote" placeholder="Quick headline for the day"></div>
+      </div>
+
+      <div class="split" style="margin-top:12px">
+        <div class="panel">
+          <h3 style="margin-top:0">Production Scheduled to be Produced</h3>
+          <table id="reportProdTable"><thead><tr><th class="left">Channel</th><th>Units</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="prodTotalCell">0</th></tr></tfoot></table>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">To Ship</h3>
+          <table id="reportShipTable"><thead><tr><th class="left">Channel</th><th>Orders</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="shipTotalCell">0</th></tr></tfoot></table>
+        </div>
+      </div>
+
+      <div class="split" style="margin-top:12px">
+        <div class="panel">
+          <h3 style="margin-top:0">Missed Production</h3>
+          <table id="reportMissProdTable"><thead><tr><th class="left">Channel</th><th>#</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="missProdTotalCell">0</th></tr></tfoot></table>
+          <h3>Missed Orders Production</h3>
+          <table id="reportIssueProdTable"><thead><tr><th class="left">Missed Order / Production</th><th>#</th><th class="left">Issue</th><th class="left">Resolution</th><th class="left">Notes</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Missed Shipped Orders</h3>
+          <table id="reportMissShipTable"><thead><tr><th class="left">Channel</th><th>#</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="missShipTotalCell">0</th></tr></tfoot></table>
+          <h3>Missed Orders Shipped</h3>
+          <table id="reportIssueShipTable"><thead><tr><th class="left">Missed Order / Shipped</th><th>#</th><th class="left">Issue</th><th class="left">Resolution</th><th class="left">Notes</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="split" style="margin-top:12px">
+        <div><label>Actions Taken / Items</label><textarea id="reportActions" placeholder="Actions taken, items to watch, follow ups."></textarea></div>
+        <div><label>Yana Final Notes</label><textarea id="reportNotes"></textarea></div>
+      </div>
+    </div>
+  </section>
+</section>
+
+  
+  <section id="tab-yana" class="tab">
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Yana Daily End-of-Day Visual</h2><div><button class="secondary" onclick="renderYanaFromImports()">Pull Imported Supervisor Data</button><button class="secondary" onclick="saveYanaReport()">Save Yana Day</button><button onclick="submitYanaVisualToKim()">Submit Visual to Kim</button></div></div>
+      <div class="banner-note">Built from the uploaded Yana daily report sheet. Yana imports Tonya and Gabe JSON submissions, finalizes the visual summary, and sends it to Kim at day end.</div>
+      <div class="five">
+        <div><label>Date</label><input type="date" id="yanaDate"></div>
+        <div><label>Week</label><input id="yanaWeek" readonly></div>
+        <div><label>Month</label><input id="yanaMonth" readonly></div>
+        <div><label>Overall Risk</label><select id="yanaRisk"><option>Green</option><option>Yellow</option><option>Red</option></select></div>
+        <div><label>Send To</label><input id="yanaRecipients" value="kimj3341@gmail.com"></div>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div class="panel">
+          <div class="toolbar"><h3 style="margin:0">Production Scheduled to be Produced</h3></div>
+          <table id="yanaProdTable"><thead><tr><th class="left">Channel</th><th>Units</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="yanaProdTotal">0</th></tr></tfoot></table>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">To Ship</h3>
+          <table id="yanaShipTable"><thead><tr><th class="left">Channel</th><th>Orders</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="yanaShipTotal">0</th></tr></tfoot></table>
+        </div>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div class="panel">
+          <h3 style="margin-top:0">Missed</h3>
+          <table id="yanaMissProdTable"><thead><tr><th class="left">Channel</th><th>Production</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="yanaMissProdTotal">0</th></tr></tfoot></table>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">Missed Ship</h3>
+          <table id="yanaMissShipTable"><thead><tr><th class="left">Channel</th><th>Orders</th></tr></thead><tbody></tbody><tfoot><tr><th class="left">Total</th><th id="yanaMissShipTotal">0</th></tr></tfoot></table>
+        </div>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div class="panel">
+          <div class="toolbar"><h3 style="margin-top:0">Missed Orders Production</h3><button class="secondary" onclick="addIssueRow('yanaIssueProdTable')">Add Row</button></div>
+          <table id="yanaIssueProdTable"><thead><tr><th class="left">#</th><th class="left">Issue</th><th class="left">Resolution</th><th class="left">Notes</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="panel">
+          <div class="toolbar"><h3 style="margin-top:0">Missed Orders Shipped</h3><button class="secondary" onclick="addIssueRow('yanaIssueShipTable')">Add Row</button></div>
+          <table id="yanaIssueShipTable"><thead><tr><th class="left">#</th><th class="left">Issue</th><th class="left">Resolution</th><th class="left">Notes</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div><label>Actions Taken / Items</label><textarea id="yanaActions"></textarea></div>
+        <div><label>Final Leadership Comments</label><textarea id="yanaNotes"></textarea></div>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div class="panel"><h3 style="margin-top:0">Import Supervisor JSON</h3><textarea id="yanaJsonImport" placeholder='Paste Tonya/Gabe JSON here, then click Import'></textarea><button class="secondary" onclick="importYanaJSON()">Import Submission</button></div>
+        <div class="panel"><h3 style="margin-top:0">Submission + Change Visibility</h3><div id="yanaChangeLog" class="small" style="max-height:220px;overflow:auto"></div></div>
+      </div>
+    </div>
+  </section>
+
+<section id="tab-leadership" class="tab">
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Leadership Compilation Board</h2><button class="secondary" onclick="exportLeadershipJSON()">Export Compiled JSON</button><button onclick="emailLeadershipReport()">Email Leadership Report</button></div>
+      <div class="banner-note">Supervisors can email JSON to Yana. Yana imports or updates the compiled record here, then this compiled record can be shared to Kim so both of you are working from the same adjusted leadership file.</div>
+      <div class="four">
+        <div><label>Date</label><input type="date" id="leadDate"></div>
+        <div><label>Scope</label><select id="leadScope"><option value="day">Day</option><option value="week">Week</option><option value="month">Month</option></select></div>
+        <div><label>Recipients</label><input id="leadRecipients" value="recipient1@example.com, recipient2@example.com, recipient3@example.com, recipient4@example.com"></div>
+        <div><label>Overall Risk</label><select id="leadRisk"><option>Green</option><option>Yellow</option><option>Red</option></select></div>
+      </div>
+      <div class="split" style="margin-top:10px">
+        <div><label>Compiled Issues</label><textarea id="leadIssues"></textarea></div>
+        <div><label>Resolutions / Comments</label><textarea id="leadResolutions"></textarea></div>
+      </div><div class="panel" style="margin-top:10px"><h3 style="margin-top:0">Submission + Change Log</h3><div id="leadChangeLog" class="small" style="max-height:180px;overflow:auto"></div></div>
+      <div class="split" style="margin-top:10px">
+        <div><label>Supervisor JSON Import</label><textarea id="leadJsonImport" placeholder='Paste JSON from Tonya or Gabe here'></textarea><button class="secondary" style="margin-top:8px" onclick="importLeadershipJSON()">Import JSON</button></div>
+        <div><label>Adjustment / Change Log</label><textarea id="leadAdjustments" placeholder="Adjustments from forecast, planner, or Yana notes will live here."></textarea></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-calendar" class="tab">
+    <div class="panel">
+      <div class="toolbar"><h2 style="margin:0">Leadership Calendar</h2><label>Month <select id="calendarMonthSel" onchange="renderCalendar()"></select></label></div>
+      <div id="calendarGrid" class="calendar"></div>
+    </div>
+    <div class="panel">
+      <h2>Selected Day Detail</h2>
+      <div id="calendarDetail" class="small">Click a saved date on the calendar.</div>
+    </div>
+  </section>
+
+  <section id="tab-admin" class="tab">
+    <div class="split">
+      <div class="panel">
+        <h2>Passwords</h2>
+        <table><thead><tr><th>User</th><th>Password</th></tr></thead><tbody id="passwordTable"></tbody></table>
+      </div>
+      <div class="panel">
+        <h2>Available Monthly People</h2>
+        <div class="small">Executive Snapshot uses this by department and month for the red/yellow/green staffing check.</div>
+        <div id="availPeopleEditor"></div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+<script>
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DEPTS=['Sewing','Print','Press','Cut','Value Added','Hang Tag'];
+const CHANNELS=['Ecomm','Amazon','Wholesale','Custom','Garage','Events'];
+const REPORT_CHANNELS=['Wholesale','Ecomm','Amazon','Dicks','Academy','Custom','Events','Other','Replen'];
+const USERS={tonya:{password:'tonya',tabs:['exec','planner','skills','report','calendar'],depts:['Sewing','Hang Tag','Value Added']},gabe:{password:'gabe',tabs:['exec','planner','skills','report','calendar'],depts:['Print','Press','Cut','Fulfillment']},yana:{password:'yana',tabs:['exec','weekly','report','yana','leadership','calendar','forecast','forecastlive'],depts:DEPTS},admin:{password:'admin',tabs:['exec','forecast','forecastlive','planner','weekly','skills','report','yana','leadership','calendar','admin'],depts:DEPTS}};
+const STYLE_RATES={BBL:{Sewing:95,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},FT:{Sewing:36,Print:1440,Press:1728,Cut:200,'Value Added':300,'Hang Tag':300},FLEX:{Sewing:36,Print:1440,Press:1728,Cut:200,'Value Added':300,'Hang Tag':300},BB:{Sewing:25,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},EW:{Sewing:18,Print:1440,Press:1728,Cut:150,'Value Added':300,'Hang Tag':450},BAL:{Sewing:25,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},INF:{Sewing:0,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},INFINITY:{Sewing:0,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},WGTR:{Sewing:15,Print:1440,Press:1728,Cut:150,'Value Added':300,'Hang Tag':240},BN:{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0},TS:{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0},'BDT SM':{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0},'BDT ML':{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0}};
+const FORECAST={
+  Ecomm:{BBL:[14483,15973,19211,21028,27770,27477,29771,24077,28161,21256,18775,40929],FT:[1121,1308,1530,1715,2030,2083,1990,1526,1511,1237,824,2470],BB:[565,465,500,565,695,720,740,625,725,530,450,995],EW:[1235,413,213,112,113,61,75,104,233,470,1286,4599],BAL:[210,230,270,310,310,250,310,210,200,150,100,450],INF:[501,644,684,979,1263,1200,1258,1077,1060,924,739,982],WGTR:[319,212,81,50,40,32,41,31,99,91,199,1031],'BDT SM':[10,10,20,20,50,50,40,40,35,30,30,30],'BDT ML':[20,20,40,40,100,100,80,80,70,60,60,60],BN:[111,44,27,16,25,10,17,17,27,46,973,720],TS:[50,50,60,70,70,70,70,70,60,60,120,120]},
+  Amazon:{BBL:[6697,9959,12767,13508,15948,20444,20088,18620,14631,12785,10554,14127],FT:[415,617,791,837,988,1267,1245,1154,907,792,654,876],BB:[0,0,0,0,0,0,0,0,0,0,0,0],EW:[166,247,317,335,396,507,499,462,363,317,262,351],BAL:[0,0,0,0,0,0,0,0,0,0,0,0],INF:[0,0,0,0,0,0,0,0,0,0,0,0],WGTR:[58,86,110,117,138,177,174,161,127,111,91,122],BN:[0,0,0,0,0,0,0,0,0,0,0,0],TS:[19,27,35,37,44,56,55,51,40,35,29,39]},
+  Wholesale:{BBL:[12800.8,16800,28000,21599.2,14400.8,14400,30400,34000,25600,9599.2,8656,8559.2],FLEX:[1920.12,2520,4200,3239.88,2160.12,2160,4560,5100,3840,1439.88,1298.4,1283.88],INFINITY:[1280.08,1680,2800,2159.92,1440.08,1440,3040,3400,2560,959.92,865.6,855.92]},
+  Custom:{BBL:[5492.8,9594.4,6776,7405.6,6144.8,8065.6,6825.6,10463.2,11279.2,7138.4,6039.2,4375.2],FLEX:[686.6,1199.3,847,925.7,768.1,1008.2,853.2,1307.9,1409.9,892.3,754.9,546.9],INFINITY:[686.6,1199.3,847,925.7,768.1,1008.2,853.2,1307.9,1409.9,892.3,754.9,546.9]},
+  Garage:{BBL:[77,177,122,386,116,161,161,244,193,386,283,283],FT:[9,21,15,46,14,19,19,29,23,46,34,34],BB:[2,5,3,10,3,4,4,6,5,10,7,7],EW:[1,3,2,6,2,2,2,4,3,6,4,4],BAL:[1,2,2,5,2,2,2,3,3,5,4,4],INF:[5,11,8,24,7,10,10,15,12,24,18,18],WGTR:[1,2,2,5,1,2,2,3,2,5,3,3],BN:[1,2,1,3,1,1,1,2,2,3,2,2],TS:[2,4,3,9,3,4,4,6,4,9,7,7]},
+  Events:{BBL:[0,0,1451,164,0,3627,94,0,0,1076,0,0],FT:[0,0,29,3,0,72,2,0,0,21,0,0],BB:[0,0,21,2,0,52,1,0,0,15,0,0],EW:[0,0,2,0,0,6,0,0,0,2,0,0],BAL:[0,0,0,0,0,0,0,0,0,0,0,0],INF:[0,0,62,7,0,154,4,0,0,46,0,0],WGTR:[0,0,4,1,0,11,0,0,0,3,0,0],BN:[0,0,8,1,0,21,1,0,0,6,0,0],TS:[0,0,0,0,0,1,0,0,0,0,0,0]}
+};
+const STORAGE_KEY='junk_capacity_planner_v1';
+const LEGACY_STORAGE_KEY='junk_sched_master_v9';
+let state={currentUser:null,passwords:{tonya:'tonya',gabe:'gabe',yana:'yana',admin:'admin'},availablePeople:{},dynamicForecast:{},allocations:{},selectedAlloc:null,selectedAllocWeek:null,skills:[{name:'Tonya Example',home:'Sewing',levels:{'Sewing':3,'Print':0,'Press':0,'Cut':0,'Value Added':2,'Hang Tag':3},star:'Sewing'},{name:'Gabe Example',home:'Print',levels:{'Sewing':0,'Print':3,'Press':3,'Cut':2,'Value Added':0,'Hang Tag':0},star:'Print'}],changeLog:[],plannerHistory:{},dailyReports:{},yanaReports:{},submissions:{}};
+function defaultAvailPeople(){const obj={};DEPTS.forEach(d=>obj[d]=Array(12).fill(d==='Sewing'?8:d==='Cut'?3:d==='Hang Tag'?3:d==='Value Added'?1:2));return obj;}
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
+function deepCopy(x){return JSON.parse(JSON.stringify(x));}
+function ensureDynamicForecast(){ if(!state.dynamicForecast || !Object.keys(state.dynamicForecast).length){ state.dynamicForecast=deepCopy(FORECAST);} else { for(const [ch,styles] of Object.entries(FORECAST)){ if(!state.dynamicForecast[ch]) state.dynamicForecast[ch]=deepCopy(styles); for(const [style,arr] of Object.entries(styles)){ if(!state.dynamicForecast[ch][style]) state.dynamicForecast[ch][style]=arr.slice(); for(let i=0;i<12;i++){ if(typeof state.dynamicForecast[ch][style][i] !== 'number') state.dynamicForecast[ch][style][i]=Number(arr[i]||0); } } } } }
+function loadState(){try{let raw=localStorage.getItem(STORAGE_KEY);if(!raw){const legacy=localStorage.getItem(LEGACY_STORAGE_KEY);if(legacy){localStorage.setItem(STORAGE_KEY,legacy);raw=legacy;}}if(raw){const parsed=JSON.parse(raw);state={...state,...parsed};}}catch(e){} if(!state.availablePeople||!Object.keys(state.availablePeople).length) state.availablePeople=defaultAvailPeople(); ensureDynamicForecast();}
+function fmt(n,d=0){return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});}
+function statusPill(v){const cls=v==='Green'?'green':v==='Yellow'?'yellow':'red';return `<span class="status ${cls}">${v}</span>`;}
+function monthIndexFromDate(dateStr){return new Date(dateStr+'T00:00:00').getMonth();}
+function monthLabelFromDate(dateStr){return MONTHS[monthIndexFromDate(dateStr)]||'';}
+function weekNumber(dateStr){const d=new Date(dateStr+'T00:00:00');d.setHours(0,0,0,0);d.setDate(d.getDate()+3-((d.getDay()+6)%7));const week1=new Date(d.getFullYear(),0,4);return 1+Math.round((((d-week1)/86400000)-3+((week1.getDay()+6)%7))/7);} 
+function mondayOfWeek(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d;}
+function iso(d){return new Date(d).toISOString().slice(0,10);}
+function getWorkdaysInMonth(year,month){const days=[];for(let d=1;d<=31;d++){const dt=new Date(year,month,d);if(dt.getMonth()!==month)break;const wd=dt.getDay();if(wd!==0&&wd!==6)days.push(dt);}return days;}
+function getForecastData(){return state.dynamicForecast||FORECAST;}
+function aggregateForecastMonth(monthIdx){let units=0; Object.values(getForecastData()).forEach(styles=>Object.values(styles).forEach(arr=>units+=Number(arr[monthIdx]||0))); return units;}
+function aggregateForecastHours(monthIdx){const totals=Object.fromEntries(DEPTS.map(d=>[d,0])); for(const [channel,styles] of Object.entries(getForecastData())){ for(const [style,arr] of Object.entries(styles)){ const units=Number(arr[monthIdx]||0); DEPTS.forEach(dep=>{const rate=(STYLE_RATES[style]||{})[dep]||0; if(rate>0) totals[dep]+=units/rate;}); }} return totals;}
+function channelMonthTotal(data,channel,monthIdx){return Object.values(data[channel]||{}).reduce((a,arr)=>a+Number(arr[monthIdx]||0),0);}
+function channelYearTotal(data,channel){return Object.values(data[channel]||{}).reduce((a,arr)=>a+arr.reduce((x,y)=>x+Number(y||0),0),0);}
+
+function allocationKey(channel,style,monthIdx){return `${channel}||${style}||${monthIdx}`;}
+function buildMonthWeeks(year,monthIdx){
+  const workdays=getWorkdaysInMonth(year,monthIdx);
+  const groups=[];
+  workdays.forEach(dt=>{
+    const wk=weekNumber(iso(dt));
+    let g=groups.find(x=>x.week===wk);
+    if(!g){g={week:wk,dates:[]};groups.push(g);}
+    g.dates.push(iso(dt));
+  });
+  return groups;
+}
+function ensureAllocation(channel,style,monthIdx){
+  const key=allocationKey(channel,style,monthIdx);
+  const target=Number((((state.dynamicForecast||{})[channel]||{})[style]||[])[monthIdx]||0);
+  if(!state.allocations[key]){
+    const year=(new Date()).getFullYear();
+    const weeks=buildMonthWeeks(year,monthIdx);
+    const base=weeks.length? target/weeks.length : 0;
+    state.allocations[key]={channel,style,monthIdx,year,monthTarget:target,weeks:weeks.map(w=>({week:w.week,units:base,edited:false,days:w.dates.map(d=>({date:d,units:w.dates.length?base/w.dates.length:0,edited:false}))}))};
+  }
+  state.allocations[key].monthTarget=target;
+  return state.allocations[key];
+}
+function getAllocatedUnitsForDate(dateStr){
+  const dt=new Date(dateStr+'T00:00:00'); const monthIdx=dt.getMonth(); let total=0;
+  for(const [ch,styles] of Object.entries(getForecastData())){
+    for(const [style,arr] of Object.entries(styles)){
+      const key=allocationKey(ch,style,monthIdx); const target=Number(arr[monthIdx]||0);
+      const alloc=state.allocations[key];
+      if(alloc){
+        let found=null;
+        alloc.weeks.forEach(w=>w.days.forEach(day=>{ if(day.date===dateStr) found=Number(day.units||0); }));
+        if(found!==null){ total+=found; }
+        else {
+          const wk=weekNumber(dateStr); const w=alloc.weeks.find(x=>x.week===wk);
+          if(w){ total += Number(w.units||0) / Math.max((w.days||[]).length||1,1); }
+          else { const days=getWorkdaysInMonth(dt.getFullYear(),monthIdx).length||1; total+=target/days; }
+        }
+      } else { const days=getWorkdaysInMonth(dt.getFullYear(),monthIdx).length||1; total+=target/days; }
+    }
+  }
+  return total;
+}
+function renderAllocationPanel(){
+  const sel=state.selectedAlloc; const selectedBox=document.getElementById('allocSelected'); const weekBody=document.querySelector('#allocWeekTable tbody'); const dayBody=document.querySelector('#allocDayTable tbody'); const recon=document.querySelector('#allocReconTable tbody');
+  if(!selectedBox || !weekBody || !dayBody || !recon) return;
+  weekBody.innerHTML=''; dayBody.innerHTML=''; recon.innerHTML='';
+  if(!sel){ selectedBox.textContent='No monthly cell selected yet.'; document.getElementById('allocMonthTarget').textContent='0'; document.getElementById('allocWeeksAllocated').textContent='0'; document.getElementById('allocVariance').textContent='0'; document.getElementById('allocHealth').textContent='—'; document.getElementById('allocWeekLabel').textContent='Select a week to allocate days.'; return; }
+  const a=ensureAllocation(sel.channel,sel.style,sel.monthIdx); selectedBox.innerHTML=`<b>${sel.channel}</b> / <b>${sel.style}</b> / <b>${MONTHS[sel.monthIdx]}</b>`;
+  const target=Number(a.monthTarget||0); const allocTotal=a.weeks.reduce((s,w)=>s+Number(w.units||0),0); const variance=allocTotal-target;
+  document.getElementById('allocMonthTarget').textContent=fmt(target,0); document.getElementById('allocWeeksAllocated').textContent=fmt(allocTotal,0); document.getElementById('allocVariance').textContent=fmt(variance,0); document.getElementById('allocHealth').innerHTML=statusPill(Math.abs(variance)<0.01?'Green':'Red');
+  a.weeks.forEach((w,idx)=>{
+    const dayTotal=(w.days||[]).reduce((s,d)=>s+Number(d.units||0),0); const dvar=dayTotal-Number(w.units||0); const tr=document.createElement('tr'); tr.className=Math.abs(dvar)<0.01?'ok-row':'error-row';
+    tr.innerHTML=`<td class="left"><button class="secondary" onclick="selectAllocWeek(${idx})">W${w.week}</button></td><td><input data-widx="${idx}" class="alloc-week-input ${w.edited?'changed-cell-gold':''}" type="number" step="1" value="${Math.round(Number(w.units||0))}"></td><td>${Math.abs(dvar)<0.01?statusPill('Green'):statusPill('Red')}</td>`;
+    weekBody.appendChild(tr);
+  });
+  document.querySelectorAll('.alloc-week-input').forEach(inp=>{inp.onchange=e=>{const idx=+e.target.dataset.widx; a.weeks[idx].units=Number(e.target.value||0); a.weeks[idx].edited=true; saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary();};});
+  if(state.selectedAllocWeek==null) state.selectedAllocWeek=0;
+  const wk=a.weeks[state.selectedAllocWeek];
+  if(wk){ document.getElementById('allocWeekLabel').textContent=`Week W${wk.week} daily allocation`; (wk.days||[]).forEach((d,idx)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${d.date}</td><td><input data-didx="${idx}" class="alloc-day-input ${d.edited?'changed-cell-gold':''}" type="number" step="1" value="${Math.round(Number(d.units||0))}"></td><td>${statusPill('Yellow')}</td>`; dayBody.appendChild(tr);});
+    document.querySelectorAll('.alloc-day-input').forEach(inp=>{inp.onchange=e=>{const idx=+e.target.dataset.didx; wk.days[idx].units=Number(e.target.value||0); wk.days[idx].edited=true; saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary();};});
+  } else { document.getElementById('allocWeekLabel').textContent='Select a week to allocate days.'; }
+  const rows=[]; rows.push(['Month',target,allocTotal,variance,Math.abs(variance)<0.01?'Green':'Red']); a.weeks.forEach(w=>{ const dayTotal=(w.days||[]).reduce((s,d)=>s+Number(d.units||0),0); rows.push([`W${w.week}`,Number(w.units||0),dayTotal,dayTotal-Number(w.units||0),Math.abs(dayTotal-Number(w.units||0))<0.01?'Green':'Red']); });
+  rows.forEach(r=>{ const tr=document.createElement('tr'); tr.className=r[4]==='Green'?'ok-row':'error-row'; tr.innerHTML=`<td class="left">${r[0]}</td><td>${fmt(r[1],0)}</td><td>${fmt(r[2],0)}</td><td>${fmt(r[3],0)}</td><td>${statusPill(r[4])}</td>`; recon.appendChild(tr);});
+}
+function selectAllocation(channel,style,monthIdx){ state.selectedAlloc={channel,style,monthIdx:Number(monthIdx)}; state.selectedAllocWeek=0; ensureAllocation(channel,style,Number(monthIdx)); saveState(); renderAllocationPanel(); }
+function selectAllocWeek(idx){ state.selectedAllocWeek=idx; saveState(); renderAllocationPanel(); }
+function autoSplitWeeks(){ if(!state.selectedAlloc) return; const a=ensureAllocation(state.selectedAlloc.channel,state.selectedAlloc.style,state.selectedAlloc.monthIdx); const per=a.weeks.length?Number(a.monthTarget||0)/a.weeks.length:0; a.weeks.forEach(w=>{if(!w.edited) w.units=per;}); saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary(); }
+function rebalanceWeeks(){ if(!state.selectedAlloc) return; const a=ensureAllocation(state.selectedAlloc.channel,state.selectedAlloc.style,state.selectedAlloc.monthIdx); const locked=a.weeks.filter(w=>w.edited).reduce((s,w)=>s+Number(w.units||0),0); const open=a.weeks.filter(w=>!w.edited); const rem=Number(a.monthTarget||0)-locked; const per=open.length?rem/open.length:0; open.forEach(w=>w.units=per); saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary(); }
+function autoSplitDays(){ if(!state.selectedAlloc) return; const a=ensureAllocation(state.selectedAlloc.channel,state.selectedAlloc.style,state.selectedAlloc.monthIdx); const wk=a.weeks[state.selectedAllocWeek||0]; if(!wk) return; const per=(wk.days||[]).length?Number(wk.units||0)/wk.days.length:0; wk.days.forEach(d=>{if(!d.edited) d.units=per;}); saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary(); }
+function rebalanceDays(){ if(!state.selectedAlloc) return; const a=ensureAllocation(state.selectedAlloc.channel,state.selectedAlloc.style,state.selectedAlloc.monthIdx); const wk=a.weeks[state.selectedAllocWeek||0]; if(!wk) return; const locked=(wk.days||[]).filter(d=>d.edited).reduce((s,d)=>s+Number(d.units||0),0); const open=(wk.days||[]).filter(d=>!d.edited); const rem=Number(wk.units||0)-locked; const per=open.length?rem/open.length:0; open.forEach(d=>d.units=per); saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary(); }
+
+function monthWeekRange(dateStr){ const monthIdx=monthIndexFromDate(dateStr); const year=new Date(dateStr+'T00:00:00').getFullYear(); const days=getWorkdaysInMonth(year,monthIdx); if(!days.length) return ''; return 'W'+weekNumber(iso(days[0]))+'-W'+weekNumber(iso(days[days.length-1])); }
+
+function mapToReportChannel(ch){ return ch==='Garage' ? 'Other' : ch; }
+function forecastChannelUnitsForDate(dateStr){
+  const dt=new Date(dateStr+'T00:00:00'); const monthIdx=dt.getMonth();
+  const out=Object.fromEntries(REPORT_CHANNELS.map(c=>[c,0]));
+  for(const [ch,styles] of Object.entries(getForecastData())){
+    for(const [style,arr] of Object.entries(styles)){
+      const key=allocationKey(ch,style,monthIdx); const target=Number(arr[monthIdx]||0);
+      let units=0;
+      const alloc=state.allocations[key];
+      if(alloc){
+        let found=null;
+        alloc.weeks.forEach(w=>w.days.forEach(day=>{ if(day.date===dateStr) found=Number(day.units||0); }));
+        if(found!==null){ units=found; }
+        else {
+          const wk=weekNumber(dateStr); const w=alloc.weeks.find(x=>x.week===wk);
+          if(w){ units = Number(w.units||0) / Math.max((w.days||[]).length||1,1); }
+          else { const days=getWorkdaysInMonth(dt.getFullYear(),monthIdx).length||1; units=target/days; }
+        }
+      } else {
+        const days=getWorkdaysInMonth(dt.getFullYear(),monthIdx).length||1; units=target/days;
+      }
+      const rc=mapToReportChannel(ch); if(out[rc]!==undefined) out[rc]+=units;
+    }
+  }
+  Object.keys(out).forEach(k=>out[k]=Math.round(out[k]));
+  return out;
+}
+function reportTableRows(id, values, type){
+  const tb=document.querySelector('#'+id+' tbody'); if(!tb) return;
+  tb.innerHTML='';
+  REPORT_CHANNELS.forEach(ch=>{
+    const val = values?.[ch] ?? 0;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="left">${ch}</td><td><input type="number" ${type==='text'?'':'step="1"'} value="${val}" data-ch="${ch}"></td>`;
+    tb.appendChild(tr);
+  });
+}
+function issueTableRows(id, rows){
+  const tb=document.querySelector('#'+id+' tbody'); if(!tb) return;
+  const data = rows && rows.length ? rows : [{name:'',qty:0,issue:'',resolution:'',notes:''},{name:'',qty:0,issue:'',resolution:'',notes:''}];
+  tb.innerHTML='';
+  data.forEach((r,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><input value="${r.name||''}" data-k="name"></td>
+      <td><input type="number" step="1" value="${r.qty||0}" data-k="qty"></td>
+      <td><input value="${r.issue||''}" data-k="issue"></td>
+      <td><input value="${r.resolution||''}" data-k="resolution"></td>
+      <td><input value="${r.notes||''}" data-k="notes"></td>`;
+    tb.appendChild(tr);
+  });
+}
+function readSimpleTable(id){
+  const out={}; document.querySelectorAll('#'+id+' tbody tr').forEach(tr=>{ const ch=tr.querySelector('input')?.dataset.ch; const val=Number(tr.querySelector('input')?.value||0); if(ch) out[ch]=val;}); return out;
+}
+function readIssueTable(id){
+  return Array.from(document.querySelectorAll('#'+id+' tbody tr')).map(tr=>({
+    name: tr.querySelector('input[data-k="name"]')?.value||'',
+    qty: Number(tr.querySelector('input[data-k="qty"]')?.value||0),
+    issue: tr.querySelector('input[data-k="issue"]')?.value||'',
+    resolution: tr.querySelector('input[data-k="resolution"]')?.value||'',
+    notes: tr.querySelector('input[data-k="notes"]')?.value||''
+  })).filter(r=>r.name || r.qty || r.issue || r.resolution || r.notes);
+}
+function updateReportTotals(){
+  const prod=readSimpleTable('reportProdTable');
+  const ship=readSimpleTable('reportShipTable');
+  const missProd=readSimpleTable('reportMissProdTable');
+  const missShip=readSimpleTable('reportMissShipTable');
+  document.getElementById('prodTotalCell').textContent=fmt(Object.values(prod).reduce((a,b)=>a+Number(b||0),0),0);
+  document.getElementById('shipTotalCell').textContent=fmt(Object.values(ship).reduce((a,b)=>a+Number(b||0),0),0);
+  const mp=document.getElementById('missProdTotalCell'); if(mp) mp.textContent=fmt(Object.values(missProd).reduce((a,b)=>a+Number(b||0),0),0);
+  const ms=document.getElementById('missShipTotalCell'); if(ms) ms.textContent=fmt(Object.values(missShip).reduce((a,b)=>a+Number(b||0),0),0);
+}
+function wireReportInputs(){
+  ['reportProdTable','reportShipTable','reportMissProdTable','reportMissShipTable','reportIssueProdTable','reportIssueShipTable'].forEach(id=>{
+    document.querySelectorAll('#'+id+' input').forEach(inp=>inp.addEventListener('change', updateReportTotals));
+  });
+  updateReportTotals();
+}
+function forecastUnitsForDate(dateStr){return getAllocatedUnitsForDate(dateStr);}
+function forecastHoursForDate(dateStr){const monthIdx=monthIndexFromDate(dateStr); const days=getWorkdaysInMonth(new Date(dateStr).getFullYear(),monthIdx).length||1; const monthHours=aggregateForecastHours(monthIdx); DEPTS.forEach(d=>monthHours[d]=monthHours[d]/days); return monthHours;}
+function renderTabs(){const user=USERS[state.currentUser]; const tabs=document.getElementById('tabs'); tabs.innerHTML=''; user.tabs.forEach((tab,i)=>{const b=document.createElement('button');b.className='tab-btn'+(i===0?' active':'');b.textContent={exec:'Executive Snapshot',forecast:'Sales Forecast',forecastlive:'Dynamic Forecast',planner:'Daily Planner',weekly:'Weekly Summary',skills:'Employee Skills',report:'Supervisor Daily Entry',yana:'Yana EOD Visual',leadership:'Leadership Board',calendar:'Leadership Calendar',admin:'Admin'}[tab];b.onclick=()=>openTab(tab,b);tabs.appendChild(b);}); document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active')); const first=user.tabs[0]; document.getElementById('tab-'+first).classList.add('active');}
+function openTab(tab,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); if(btn)btn.classList.add('active'); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById('tab-'+tab).classList.add('active');}
+function login(){loadState(); const u=document.getElementById('loginUser').value.trim().toLowerCase(); const p=document.getElementById('loginPass').value; if(!USERS[u] || (state.passwords[u]||USERS[u].password)!==p){document.getElementById('loginMsg').textContent='Login did not match.'; return;} state.currentUser=u; saveState(); document.getElementById('loginView').classList.add('hidden'); document.getElementById('appView').classList.remove('hidden'); document.getElementById('whoami').textContent='Logged in: '+u; initUI();}
+function logout(){state.currentUser=null; saveState(); document.getElementById('appView').classList.add('hidden'); document.getElementById('loginView').classList.remove('hidden');}
+function initSelectors(){['execMonthSel','weekMonthSel','monthlySummarySel','calendarMonthSel'].forEach(id=>{const sel=document.getElementById(id); sel.innerHTML=MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');}); const weeks=[...new Set(Object.keys(state.dailyReports).map(d=>weekNumber(d)).concat(Array.from({length:53},(_,i)=>i+1)))].sort((a,b)=>a-b); const wsel=document.getElementById('weekSel'); wsel.innerHTML=weeks.map(w=>`<option value="${w}">Week ${w}</option>`).join(''); document.getElementById('execMonthSel').value=new Date().getMonth(); document.getElementById('weekMonthSel').value=new Date().getMonth(); document.getElementById('monthlySummarySel').value=new Date().getMonth(); document.getElementById('calendarMonthSel').value=new Date().getMonth(); const wvm=document.getElementById('weeklyViewMode'); if(wvm) wvm.value='week'; const leadDate=document.getElementById('leadDate'); if(leadDate && !leadDate.value) leadDate.value=new Date().toISOString().slice(0,10);}
+function renderForecast(){const tb=document.querySelector('#forecastTable tbody'); tb.innerHTML=''; for(const [channel,styles] of Object.entries(FORECAST)){ const monthTotals=MONTHS.map((_,i)=>channelMonthTotal(FORECAST,channel,i)); const yearTotal=channelYearTotal(FORECAST,channel)||1; for(const [style,arr] of Object.entries(styles)){ const tr=document.createElement('tr'); const total=arr.reduce((a,b)=>a+Number(b||0),0); tr.innerHTML=`<td class="left">${channel}</td><td class="left">${style}</td>${arr.map((v,i)=>`<td class="num">${fmt(v,0)}<span class="mix">Mix ${fmt((Number(v||0)/Math.max(monthTotals[i],1))*100,1)}%</span></td>`).join('')}<td class="num"><b>${fmt(total,0)}</b></td><td class="num pct-col"><b>${fmt(total/yearTotal*100,1)}%</b></td>`; tb.appendChild(tr);} }}
+function setFocusMonth(v){state.focusMonth=String(v);saveState();renderLiveForecast();}
+function resetAllDynamicForecast(){ state.dynamicForecast=deepCopy(FORECAST); appendChangeLog('Dynamic forecast reset to original forecast'); saveState(); renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); renderMonthlySummary(); }
+function renderLiveForecast(){const tb=document.querySelector('#forecastLiveTable tbody'); if(!tb) return; tb.innerHTML=''; const data=getForecastData(); const focus=state.focusMonth===undefined?'':state.focusMonth; const focusSel=document.getElementById('focusMonthSel'); if(focusSel) focusSel.value=focus; for(const [channel,styles] of Object.entries(FORECAST)){ const monthTotals=MONTHS.map((_,i)=>channelMonthTotal(data,channel,i)); const yearTotal=channelYearTotal(data,channel)||1; for(const [style,baseArr] of Object.entries(styles)){ const liveArr=((data[channel]||{})[style]||baseArr); const tr=document.createElement('tr'); let cells=`<td class="left">${channel}</td><td class="left">${style}</td>`; liveArr.forEach((v,i)=>{ const changed=Number(v)!==Number(baseArr[i]||0); const showMix=(focus==='' || Number(focus)===i); cells += `<td class="num ${Number(focus)===i?'month-focus':''}"><input class="cell-edit ${changed?'changed-cell':''}" data-channel="${channel}" data-style="${style}" data-month="${i}" type="number" value="${Number(v||0)}"><div><button type="button" class="secondary alloc-btn" onclick="selectAllocation('${channel}','${style}',${i})">Plan</button>${changed?` <button type="button" class="secondary" onclick="resetForecastCell('${channel}','${style}',${i})">Reset</button>`:''}</div><span class="mix ${showMix?'':'hidden-mix'}">Mix ${fmt((Number(v||0)/Math.max(monthTotals[i],1))*100,1)}%</span></td>`; }); const total=liveArr.reduce((a,b)=>a+Number(b||0),0); cells += `<td class="num"><b>${fmt(total,0)}</b></td><td class="num pct-col"><b>${fmt(total/yearTotal*100,1)}%</b></td>`; tr.innerHTML=cells; tb.appendChild(tr);} } document.querySelectorAll('#forecastLiveTable .cell-edit').forEach(inp=>{ inp.addEventListener('focus',e=>{state.focusMonth=e.target.dataset.month; saveState(); document.getElementById('focusMonthSel').value=state.focusMonth; document.querySelectorAll('#forecastLiveTable .mix').forEach(x=>x.classList.add('hidden-mix')); document.querySelectorAll(`#forecastLiveTable .cell-edit[data-month="${state.focusMonth}"]`).forEach(el=>{const mix=el.parentElement.querySelector('.mix'); if(mix) mix.classList.remove('hidden-mix');}); }); inp.addEventListener('change',e=>{ const ch=e.target.dataset.channel, style=e.target.dataset.style, m=Number(e.target.dataset.month), val=Number(e.target.value||0); state.dynamicForecast[ch][style][m]=val; const key=allocationKey(ch,style,m); if(state.allocations[key]) state.allocations[key].monthTarget=val; state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'forecast', channel:ch, style, month:m, value:val, by:state.currentUser}); saveState(); if(state.selectedAlloc && state.selectedAlloc.channel===ch && state.selectedAlloc.style===style && state.selectedAlloc.monthIdx===m){ ensureAllocation(ch,style,m); } renderLiveForecast(); renderAllocationPanel(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); }); inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.target.blur();} }); }); renderAllocationPanel();}
+function resetForecastCell(channel,style,monthIdx){ const base=Number((FORECAST[channel]||{})[style]?.[monthIdx]||0); if(!state.dynamicForecast[channel]) state.dynamicForecast[channel]={}; if(!state.dynamicForecast[channel][style]) state.dynamicForecast[channel][style]=JSON.parse(JSON.stringify((FORECAST[channel]||{})[style]||Array(12).fill(0))); state.dynamicForecast[channel][style][monthIdx]=base; const key=allocationKey(channel,style,monthIdx); delete state.allocations[key]; state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'reset', channel, style, month:monthIdx, value:base, by:state.currentUser}); saveState(); renderLiveForecast(); renderAllocationPanel(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); }
+function renderDailyStaffInputs(){const wrap=document.getElementById('dailyStaffInputs'); wrap.innerHTML=''; const user=USERS[state.currentUser]; const depts=(user&&user.depts)||DEPTS; depts.forEach(dep=>{ const id=dep.replace(/\s/g,'_'); const div=document.createElement('div'); div.style.marginBottom='10px'; div.innerHTML=`<div class="small" style="font-weight:700;color:#1d2433;margin-bottom:4px">${dep}</div><div class="three"><div><label>Scheduled</label><input id="sched_${id}" type="number" min="0" step="1" value="${dep==='Sewing'?8:dep==='Cut'?3:dep==='Hang Tag'?3:dep==='Value Added'?1:2}" oninput="renderDailyPlanner()"></div><div><label>Callouts</label><input id="call_${id}" type="number" min="0" step="1" value="0" oninput="renderDailyPlanner()"></div><div><label>OT hrs/person</label><input id="ot_${id}" type="number" min="0" step="0.5" value="0" oninput="renderDailyPlanner()"></div></div>`; wrap.appendChild(div);});}
+function renderDailyPlanner(){const date=document.getElementById('plannerDate').value||new Date().toISOString().slice(0,10); document.getElementById('plannerDate').value=date; document.getElementById('plannerWeek').value=weekNumber(date); document.getElementById('plannerWeekRange').value=monthWeekRange(date); document.getElementById('plannerMonth').value=monthLabelFromDate(date); const reqHours=forecastHoursForDate(date); let forecastUnits=forecastUnitsForDate(date); const override=Number(document.getElementById('plannerUnitsOverride').value||0); if(override>0){ const ratio=override/(forecastUnits||1); forecastUnits=override; DEPTS.forEach(d=>reqHours[d]*=ratio); }
+  const tb=document.querySelector('#dailyPlannerTable tbody'); tb.innerHTML=''; let totalReq=0,totalAvail=0,headsShort=0; DEPTS.forEach(dep=>{const id=dep.replace(/\s/g,'_'); const sched=Number(document.getElementById('sched_'+id)?.value||0); const call=Number(document.getElementById('call_'+id)?.value||0); const ot=Number(document.getElementById('ot_'+id)?.value||0); const net=Math.max(0,sched-call); const avail=net*(7.5+ot); const req=reqHours[dep]||0; totalReq+=req; totalAvail+=avail; const gap=avail-req; const short=Math.max(0,(req-avail)/7.5); headsShort+=short; const status=gap>=0?'Green':gap>=-4?'Yellow':'Red'; const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${dep}</td><td class="num">${fmt(req,1)}</td><td>${fmt(sched,0)}</td><td>${fmt(call,0)}</td><td>${fmt(net,0)}</td><td class="num">${fmt(avail,1)}</td><td class="num">${fmt(gap,1)}</td><td>${statusPill(status)}</td>`; tb.appendChild(tr);}); const gapH=totalAvail-totalReq; const overall=gapH>=0?'Green':gapH>=-8?'Yellow':'Red'; document.getElementById('dpUnits').textContent=fmt(forecastUnits,0); document.getElementById('dpReqHours').textContent=fmt(totalReq,1); document.getElementById('dpAvailHours').textContent=fmt(totalAvail,1); document.getElementById('dpGapHours').textContent=fmt(gapH,1); document.getElementById('dpHeadsShort').textContent=fmt(headsShort,1); document.getElementById('dpRisk').innerHTML=statusPill(overall);} 
+function savePlannerDay(){const date=document.getElementById('plannerDate').value; if(!date) return; const deptRows={}; DEPTS.forEach(dep=>{const id=dep.replace(/\s/g,'_'); deptRows[dep]={sched:Number(document.getElementById('sched_'+id)?.value||0),call:Number(document.getElementById('call_'+id)?.value||0),ot:Number(document.getElementById('ot_'+id)?.value||0),expectedHours:forecastHoursForDate(date)[dep]||0};}); state.plannerHistory[date]={date,week:weekNumber(date),weekRange:monthWeekRange(date),month:monthIndexFromDate(date),forecastUnits:forecastUnitsForDate(date),deptRows}; saveState(); alert('Planner day saved.'); renderWeeklySummary();}
+function addSkillRow(){state.skills.push({name:'',home:'Sewing',levels:{'Sewing':0,'Print':0,'Press':0,'Cut':0,'Value Added':0,'Hang Tag':0},star:''}); saveState(); renderSkills();}
+function renderSkills(){const tb=document.querySelector('#skillsTable tbody'); tb.innerHTML=''; state.skills.forEach((row,idx)=>{const tr=document.createElement('tr'); tr.innerHTML=`<td><input value="${row.name||''}" onchange="state.skills[${idx}].name=this.value;saveState();renderSkillSummary()"></td><td><select onchange="state.skills[${idx}].home=this.value;saveState()">${DEPTS.map(d=>`<option ${row.home===d?'selected':''}>${d}</option>`).join('')}</select></td>${DEPTS.map(dep=>`<td><select onchange="state.skills[${idx}].levels['${dep}']=+this.value;saveState();renderSkillSummary()"><option value="0" ${(row.levels[dep]||0)===0?'selected':''}>—</option><option value="1" ${(row.levels[dep]||0)===1?'selected':''}>1</option><option value="2" ${(row.levels[dep]||0)===2?'selected':''}>2</option><option value="3" ${(row.levels[dep]||0)===3?'selected':''}>3</option></select></td>`).join('')}<td><select onchange="state.skills[${idx}].star=this.value;saveState();renderSkillSummary()"><option value="">—</option>${DEPTS.map(d=>`<option value="${d}" ${row.star===d?'selected':''}>⭐ ${d}</option>`).join('')}</select></td><td><button class="secondary" onclick="state.skills.splice(${idx},1);saveState();renderSkills()">X</button></td>`; tb.appendChild(tr);}); renderSkillSummary();}
+function renderSkillSummary(){const tb=document.querySelector('#skillSummary tbody'); tb.innerHTML=''; DEPTS.forEach(dep=>{let weighted=0,l1=0,l2=0,l3=0,stars=0; state.skills.forEach(r=>{const lv=Number((r.levels||{})[dep]||0); if(lv===1){weighted+=0.5;l1++;} if(lv===2){weighted+=1;l2++;} if(lv===3){weighted+=1.1;l3++;} if(r.star===dep)stars++;}); const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${dep}</td><td>${fmt(weighted,1)}</td><td>${l1}</td><td>${l2}</td><td>${l3}</td><td>${stars}</td>`; tb.appendChild(tr);});}
+function renderWeeklySummary(){const week=+document.getElementById('weekSel').value||weekNumber(new Date().toISOString().slice(0,10)); const month=+document.getElementById('weekMonthSel').value; const mode=(document.getElementById('weeklyViewMode')||{}).value||'week'; const monthDays=getWorkdaysInMonth(2026,month); const rangeLabel=monthDays.length?('W'+weekNumber(iso(monthDays[0]))+'-W'+weekNumber(iso(monthDays[monthDays.length-1]))):''; let plannerEntries=Object.entries(state.plannerHistory); let reportEntries=Object.entries(state.dailyReports); if(mode==='week'){ plannerEntries=plannerEntries.filter(([d,p])=>p.week===week && p.month===month); reportEntries=reportEntries.filter(([d,r])=>r.week===week && r.month===month);} else if(mode==='range'){ plannerEntries=plannerEntries.filter(([d,p])=>p.month===month); reportEntries=reportEntries.filter(([d,r])=>r.month===month);} else { plannerEntries=plannerEntries.filter(([d,p])=>p.month===month); reportEntries=reportEntries.filter(([d,r])=>r.month===month);} const planner=plannerEntries.map(([,p])=>p); const reports=reportEntries.map(([,r])=>r); const note=document.getElementById('weekRangeNote'); const banner=document.getElementById('weeklyBannerNote'); if(note) note.textContent=(mode==='week'?('Selected week: W'+week+' | Month span: '+rangeLabel):mode==='range'?('Viewing month week range: '+rangeLabel):('Viewing full month: '+MONTHS[month])); if(banner) banner.textContent=(mode==='week'?'Weekly Summary is showing one selected week from the Dynamic Forecast.':mode==='range'?'Weekly Summary is rolled up to the month week range and fed from the Dynamic Forecast.':'Weekly Summary is rolled up to the full month and fed from the Dynamic Forecast.'); const sw=document.getElementById('selectedWeekCard'); if(sw) sw.textContent=mode==='week'?('W'+week):mode==='range'?rangeLabel:MONTHS[month]; const sr=document.getElementById('selectedWeekRangeCard'); if(sr) sr.textContent=mode==='week'?(rangeLabel||'—'):mode==='range'?'Range rollup':'Month rollup'; const tb=document.querySelector('#weeklySummaryTable tbody'); tb.innerHTML=''; DEPTS.forEach(dep=>{const fh=planner.reduce((a,p)=>a+Number(p.deptRows?.[dep]?.expectedHours||0),0); const ah=reports.reduce((a,r)=>a+Number(r.depts?.[dep]?.actualHours||0),0); const fu=planner.reduce((a,p)=>a+Number(p.forecastUnits||0),0); const au=reports.reduce((a,r)=>a+Number(r.depts?.[dep]?.actualUnits||0),0); const gap=ah-fh; const status=gap>=0?'Green':gap>=-8?'Yellow':'Red'; const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${dep}</td><td class="num">${fmt(fh,1)}</td><td class="num">${fmt(ah,1)}</td><td class="num">${fmt(fu,0)}</td><td class="num">${fmt(au,0)}</td><td class="num">${fmt(gap,1)}</td><td>${statusPill(status)}</td>`; tb.appendChild(tr);}); renderMonthlySummary();}
+function renderMonthlySummary(){const month=+document.getElementById('monthlySummarySel').value; const planner=Object.entries(state.plannerHistory).filter(([d,p])=>p.month===month).map(([,p])=>p); const reports=Object.entries(state.dailyReports).filter(([d,r])=>r.month===month).map(([,r])=>r); const tb=document.querySelector('#monthlySummaryTable tbody'); tb.innerHTML=''; DEPTS.forEach(dep=>{const hoursForecast=planner.reduce((a,p)=>a+Number(p.deptRows?.[dep]?.expectedHours||0),0); const hoursActual=reports.reduce((a,r)=>a+Number(r.depts?.[dep]?.actualHours||0),0); const salesExpected=planner.reduce((a,p)=>a+Number(p.forecastUnits||0),0); const salesActual=reports.reduce((a,r)=>a+Number(r.actualSales||0),0); const attain=salesExpected?salesActual/salesExpected*100:0; const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${dep}</td><td class="num">${fmt(salesExpected,0)}</td><td class="num">${fmt(salesActual,0)}</td><td class="num">${fmt(hoursForecast,1)}</td><td class="num">${fmt(hoursActual,1)}</td><td>${fmt(attain,1)}%</td>`; tb.appendChild(tr);});}
+function loadReportFromPlanner(){const date=document.getElementById('plannerDate').value||new Date().toISOString().slice(0,10); document.getElementById('reportDate').value=date; document.getElementById('reportWeek').value=weekNumber(date); document.getElementById('reportMonth').value=monthLabelFromDate(date); document.getElementById('reportExpectedSales').value=Math.round(forecastUnitsForDate(date)); const existing=state.dailyReports[date]||{}; const prod = existing.productionScheduled || forecastChannelUnitsForDate(date); const ship = existing.toShip || Object.fromEntries(REPORT_CHANNELS.map(c=>[c,0])); const missProd = existing.missedProduction || Object.fromEntries(REPORT_CHANNELS.map(c=>[c,0])); const missShip = existing.missedShipped || Object.fromEntries(REPORT_CHANNELS.map(c=>[c,0])); document.getElementById('reportBy').value=existing.by||state.currentUser.charAt(0).toUpperCase()+state.currentUser.slice(1); document.getElementById('reportActualSales').value=existing.actualSales||0; document.getElementById('reportHoursActual').value=existing.hoursActual||0; document.getElementById('reportRisk').value=existing.risk||'Green'; document.getElementById('reportHeaderNote').value=existing.headerNote||''; document.getElementById('reportActions').value=existing.actions||''; document.getElementById('reportNotes').value=existing.notes||''; reportTableRows('reportProdTable',prod); reportTableRows('reportShipTable',ship); reportTableRows('reportMissProdTable',missProd); reportTableRows('reportMissShipTable',missShip); issueTableRows('reportIssueProdTable',existing.issueProdRows||[]); issueTableRows('reportIssueShipTable',existing.issueShipRows||[]); wireReportInputs(); }
+function saveDailyReport(){const date=document.getElementById('reportDate').value||new Date().toISOString().slice(0,10); document.getElementById('reportDate').value=date; const productionScheduled=readSimpleTable('reportProdTable'); const toShip=readSimpleTable('reportShipTable'); const missedProduction=readSimpleTable('reportMissProdTable'); const missedShipped=readSimpleTable('reportMissShipTable'); const issueProdRows=readIssueTable('reportIssueProdTable'); const issueShipRows=readIssueTable('reportIssueShipTable'); const expectedSales=Number(document.getElementById('reportExpectedSales').value||0); const actualSales=Number(document.getElementById('reportActualSales').value||0); const hoursActual=Number(document.getElementById('reportHoursActual').value||0); state.dailyReports[date]={date,week:weekNumber(date),month:monthIndexFromDate(date),by:document.getElementById('reportBy').value,expectedSales,actualSales,hoursActual,risk:document.getElementById('reportRisk').value,headerNote:document.getElementById('reportHeaderNote').value,actions:document.getElementById('reportActions').value,notes:document.getElementById('reportNotes').value,productionScheduled,toShip,missedProduction,missedShipped,issueProdRows,issueShipRows,issues:issueProdRows.map(r=>r.issue).concat(issueShipRows.map(r=>r.issue)).filter(Boolean).join('; ')}; state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'daily-report', date, by:state.currentUser}); saveState(); initSelectors(); renderExecutiveSnapshot(); renderWeeklySummary(); renderCalendar(); alert('Daily report saved.');}
+function submitDailyReportToKim(){ saveDailyReport(); const date=document.getElementById('reportDate').value||new Date().toISOString().slice(0,10); const rep=state.dailyReports[date]||{}; const recipients=document.getElementById('reportRecipients').value||'kimj3341@gmail.com'; const subject=encodeURIComponent('Junk daily production review - '+date); const body=encodeURIComponent((rep.headerNote?rep.headerNote+'\n\n':'')+'Risk: '+(rep.risk||'')+'\nSubmitted by: '+(rep.by||'')+'\nExpected Sales: '+fmt(rep.expectedSales||0,0)+'\nActual Sales: '+fmt(rep.actualSales||0,0)+'\nHours Actual: '+fmt(rep.hoursActual||0,1)+'\n\nActions Taken / Items:\n'+(rep.actions||'')+'\n\nYana Notes:\n'+(rep.notes||'')+'\n\nIssues / Resolutions:\n'+(rep.issueProdRows||[]).map(r=>'- '+(r.name||'')+' #'+(r.qty||0)+': '+(r.issue||'')+' | '+(r.resolution||'')).join('\n')+'\n'+(rep.issueShipRows||[]).map(r=>'- '+(r.name||'')+' #'+(r.qty||0)+': '+(r.issue||'')+' | '+(r.resolution||'')).join('\n')); window.location.href='mailto:'+recipients+'?subject='+subject+'&body='+body;}
+function renderCalendar(){const month=+document.getElementById('calendarMonthSel').value; const grid=document.getElementById('calendarGrid'); grid.innerHTML=''; ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{const h=document.createElement('div');h.className='small';h.style.fontWeight='700';h.textContent=d;grid.appendChild(h);}); const first=new Date(2026,month,1); const offset=(first.getDay()+6)%7; for(let i=0;i<offset;i++){const e=document.createElement('div');e.className='cal-day empty';grid.appendChild(e);} for(let day=1; day<=31; day++){const dt=new Date(2026,month,day); if(dt.getMonth()!==month) break; const key=iso(dt); const rep=state.dailyReports[key]; const div=document.createElement('div'); div.className='cal-day'; const risk=(rep?.risk||''); const dot=risk?`<span class="risk-dot ${risk==='Green'?'dot-green':risk==='Yellow'?'dot-yellow':'dot-red'}"></span>`:''; div.innerHTML=`<div class="n">${day}</div><div class="small">${dot}${rep?rep.risk:'No report'}</div><div class="small">${rep?'Sales: '+fmt(rep.actualSales,0):''}</div>`; div.onclick=()=>showCalendarDetail(key); grid.appendChild(div);} }
+function showCalendarDetail(key){const rep=state.dailyReports[key]; const box=document.getElementById('calendarDetail'); if(!rep){box.textContent='No saved report for '+key+'.'; return;} const ps=rep.productionScheduled||{}; const ship=rep.toShip||{}; const missP=rep.missedProduction||{}; const missS=rep.missedShipped||{}; let html=`<div><b>${key}</b> · ${rep.by||''} · ${statusPill(rep.risk||'Green')}</div><div style="margin-top:8px">${rep.headerNote||''}</div><div style="margin-top:8px">Expected Sales: <b>${fmt(rep.expectedSales||0,0)}</b> | Actual Sales: <b>${fmt(rep.actualSales||0,0)}</b> | Actual Hours: <b>${fmt(rep.hoursActual||0,1)}</b></div>`; html+=`<div class="split" style="margin-top:10px"><div><b>Production Scheduled</b><table><thead><tr><th class="left">Channel</th><th>Units</th></tr></thead><tbody>${REPORT_CHANNELS.map(ch=>`<tr><td class="left">${ch}</td><td>${fmt(ps[ch]||0,0)}</td></tr>`).join('')}</tbody></table></div><div><b>To Ship</b><table><thead><tr><th class="left">Channel</th><th>Orders</th></tr></thead><tbody>${REPORT_CHANNELS.map(ch=>`<tr><td class="left">${ch}</td><td>${fmt(ship[ch]||0,0)}</td></tr>`).join('')}</tbody></table></div></div>`; html+=`<div class="split" style="margin-top:10px"><div><b>Missed Production</b><table><thead><tr><th class="left">Channel</th><th>#</th></tr></thead><tbody>${REPORT_CHANNELS.map(ch=>`<tr><td class="left">${ch}</td><td>${fmt(missP[ch]||0,0)}</td></tr>`).join('')}</tbody></table></div><div><b>Missed Shipped</b><table><thead><tr><th class="left">Channel</th><th>#</th></tr></thead><tbody>${REPORT_CHANNELS.map(ch=>`<tr><td class="left">${ch}</td><td>${fmt(missS[ch]||0,0)}</td></tr>`).join('')}</tbody></table></div></div>`; html+=`<div style="margin-top:8px"><b>Actions Taken / Items:</b> ${rep.actions||'—'}</div><div style="margin-top:8px"><b>Yana Notes:</b> ${rep.notes||'—'}</div>`; box.innerHTML=html;}function importLeadershipJSON(){try{const raw=document.getElementById('leadJsonImport').value.trim(); if(!raw) return; const obj=JSON.parse(raw); const date=obj.date||document.getElementById('leadDate').value||new Date().toISOString().slice(0,10); document.getElementById('leadDate').value=date; const prior=document.getElementById('leadAdjustments').value; document.getElementById('leadAdjustments').value=(prior?prior+'\n':'')+'Imported '+(obj.by||'submission')+' on '+new Date().toLocaleString()+(obj.adjustments?'\n'+obj.adjustments:''); document.getElementById('leadIssues').value=[document.getElementById('leadIssues').value,obj.issues||''].filter(Boolean).join('\n'); document.getElementById('leadResolutions').value=[document.getElementById('leadResolutions').value,obj.notes||''].filter(Boolean).join('\n'); if(obj.risk) document.getElementById('leadRisk').value=obj.risk; alert('Supervisor JSON imported into Leadership Board.');}catch(e){alert('JSON import could not be read.');}}
+function exportLeadershipJSON(){const obj={date:document.getElementById('leadDate').value,scope:document.getElementById('leadScope').value,risk:document.getElementById('leadRisk').value,issues:document.getElementById('leadIssues').value,resolutions:document.getElementById('leadResolutions').value,adjustments:document.getElementById('leadAdjustments').value,by:state.currentUser}; const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='leadership_compilation_'+(obj.date||'undated')+'.json'; a.click();}
+function emailLeadershipReport(){const scope=document.getElementById('leadScope').value; const recipients=document.getElementById('leadRecipients').value; const date=document.getElementById('leadDate').value||new Date().toISOString().slice(0,10); const subject=encodeURIComponent('Junk leadership report - '+scope+' - '+date); const body=encodeURIComponent('Risk: '+document.getElementById('leadRisk').value+'\n\nIssues:\n'+document.getElementById('leadIssues').value+'\n\nResolutions / Comments:\n'+document.getElementById('leadResolutions').value+'\n\nAdjustments:\n'+document.getElementById('leadAdjustments').value); window.location.href='mailto:'+recipients+'?subject='+subject+'&body='+body;}
+function renderAdmin(){const pt=document.getElementById('passwordTable'); pt.innerHTML=''; Object.keys(state.passwords).forEach(u=>{const tr=document.createElement('tr'); tr.innerHTML=`<td>${u}</td><td><input value="${state.passwords[u]}" onchange="state.passwords['${u}']=this.value;saveState()"></td>`; pt.appendChild(tr);}); const wrap=document.getElementById('availPeopleEditor'); wrap.innerHTML=''; DEPTS.forEach(dep=>{const div=document.createElement('div'); div.className='panel'; div.innerHTML=`<div style="font-weight:700;margin-bottom:6px">${dep}</div><div class="six">${MONTHS.map((m,i)=>`<div><label>${m}</label><input type="number" step="0.1" value="${state.availablePeople[dep][i]}" onchange="state.availablePeople['${dep}'][${i}]=+this.value||0;saveState();renderExecutiveSnapshot()"></div>`).join('')}</div>`; wrap.appendChild(div);});}
+function seedReportTable(){loadReportFromPlanner();}
+
+function addIssueRow(tableId,row){ const tb=document.querySelector('#'+tableId+' tbody'); if(!tb) return; const tr=document.createElement('tr'); const r=row||{qty:'',issue:'',resolution:'',notes:''}; tr.innerHTML=`<td><input type="number" value="${r.qty||''}"></td><td><input value="${r.issue||''}"></td><td><input value="${r.resolution||''}"></td><td><input value="${r.notes||''}"></td>`; tb.appendChild(tr);}
+function appendChangeLog(msg){ state.changeLog=(state.changeLog||[]); state.changeLog.unshift({ts:new Date().toISOString(), msg}); saveState(); renderChangeLogViews(); }
+function renderChangeLogViews(){ const rows=(state.changeLog||[]).slice(0,50).map(x=>`<div>${new Date(x.ts).toLocaleString()} — ${x.msg||((x.type||'change')+' updated')}</div>`).join(''); const a=document.getElementById('leadChangeLog'); if(a) a.innerHTML=rows||'No changes yet.'; const b=document.getElementById('yanaChangeLog'); if(b) b.innerHTML=rows||'No changes yet.'; }
+function exportSupervisorJSON(){ saveDailyReport(); const date=document.getElementById('reportDate').value; const rep=state.dailyReports[date]||{}; const obj={date,by:state.currentUser||document.getElementById('reportBy').value,risk:rep.risk||document.getElementById('reportRisk').value,expectedSales:rep.expectedSales||0,actualSales:rep.actualSales||0,hoursActual:rep.hoursActual||0,issues:rep.issues||'',notes:rep.notes||'',actions:rep.actions||'',productionScheduled:rep.productionScheduled||{},toShip:rep.toShip||{},missedProduction:rep.missedProduction||{},missedShipped:rep.missedShipped||{},issueProdRows:rep.issueProdRows||[],issueShipRows:rep.issueShipRows||[]}; const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(state.currentUser||'submission')+'_'+date+'.json'; a.click(); }
+function submitDayToYana(){ saveDailyReport(); const date=document.getElementById('reportDate').value; const rep=state.dailyReports[date]||{}; const obj={date,by:state.currentUser||document.getElementById('reportBy').value,risk:rep.risk||'',issues:rep.issues||'',notes:rep.notes||'',actions:rep.actions||'',productionScheduled:rep.productionScheduled||{},toShip:rep.toShip||{},missedProduction:rep.missedProduction||{},missedShipped:rep.missedShipped||{},issueProdRows:rep.issueProdRows||[],issueShipRows:rep.issueShipRows||[]}; const body=encodeURIComponent(JSON.stringify(obj,null,2)); appendChangeLog((state.currentUser||'User')+' submitted daily JSON for '+date+' to Yana/Kim'); window.location.href='mailto:yana@example.com,kimj3341@gmail.com?subject='+encodeURIComponent('Supervisor daily JSON - '+date)+'&body='+body; }
+function fillYanaTablesFromPlanner(){ const date=document.getElementById('yanaDate').value||new Date().toISOString().slice(0,10); document.getElementById('yanaDate').value=date; document.getElementById('yanaWeek').value=weekNumber(date); document.getElementById('yanaMonth').value=monthLabelFromDate(date); reportTableRows('yanaProdTable', REPORT_CHANNELS.reduce((a,c)=>{a[c]=0;return a;},{})); reportTableRows('yanaShipTable', REPORT_CHANNELS.reduce((a,c)=>{a[c]=0;return a;},{})); reportTableRows('yanaMissProdTable', REPORT_CHANNELS.reduce((a,c)=>{a[c]=0;return a;},{})); reportTableRows('yanaMissShipTable', REPORT_CHANNELS.reduce((a,c)=>{a[c]=0;return a;},{})); updateSimpleFooters(); }
+function updateSimpleFooters(){ ['yanaProdTable','yanaShipTable','yanaMissProdTable','yanaMissShipTable'].forEach(id=>{const tb=document.querySelector('#'+id+' tbody'); if(!tb) return; let total=0; tb.querySelectorAll('input').forEach(inp=>total+=Number(inp.value||0)); const map={yanaProdTable:'yanaProdTotal', yanaShipTable:'yanaShipTotal', yanaMissProdTable:'yanaMissProdTotal', yanaMissShipTable:'yanaMissShipTotal'}; const cell=document.getElementById(map[id]); if(cell) cell.textContent=fmt(total,0); const panel=tb.closest('.panel'); if(panel && (id==='yanaMissProdTable' || id==='yanaMissShipTable')){ panel.style.display = total===0 ? 'none' : ''; }}); }
+function importYanaJSON(){ try{ const raw=document.getElementById('yanaJsonImport').value.trim(); if(!raw) return; const obj=JSON.parse(raw); state.submissions[state.submissions?Object.keys(state.submissions).length:0] = obj; const date=obj.date||document.getElementById('yanaDate').value||new Date().toISOString().slice(0,10); document.getElementById('yanaDate').value=date; document.getElementById('yanaWeek').value=weekNumber(date); document.getElementById('yanaMonth').value=monthLabelFromDate(date); if(obj.risk) document.getElementById('yanaRisk').value=obj.risk; const appendToTable=(tableId,data)=>{ const tb=document.querySelector('#'+tableId+' tbody'); if(!tb) return; Array.from(tb.rows).forEach((row,i)=>{ const ch=row.cells[0].innerText.trim(); if(data[ch]!=null){ row.cells[1].querySelector('input').value=Number(row.cells[1].querySelector('input').value||0)+Number(data[ch]||0); } }); }; appendToTable('yanaProdTable', obj.productionScheduled||{}); appendToTable('yanaShipTable', obj.toShip||{}); appendToTable('yanaMissProdTable', obj.missedProduction||{}); appendToTable('yanaMissShipTable', obj.missedShipped||{}); (obj.issueProdRows||[]).forEach(r=>addIssueRow('yanaIssueProdTable',r)); (obj.issueShipRows||[]).forEach(r=>addIssueRow('yanaIssueShipTable',r)); document.getElementById('yanaNotes').value=[document.getElementById('yanaNotes').value,obj.notes||''].filter(Boolean).join('\n'); document.getElementById('yanaActions').value=[document.getElementById('yanaActions').value,obj.actions||''].filter(Boolean).join('\n'); updateSimpleFooters(); appendChangeLog((obj.by||'Submission')+' imported into Yana visual for '+date); alert('Imported into Yana tab.'); }catch(e){ alert('Could not read supervisor JSON.'); } }
+function renderYanaTab(){ const date=(document.getElementById('yanaDate')?.value)||new Date().toISOString().slice(0,10); if(document.getElementById('yanaDate')) document.getElementById('yanaDate').value=date; if(document.getElementById('yanaWeek')) document.getElementById('yanaWeek').value=weekNumber(date); if(document.getElementById('yanaMonth')) document.getElementById('yanaMonth').value=monthLabelFromDate(date); if(document.querySelector('#yanaProdTable tbody') && !document.querySelector('#yanaProdTable tbody').children.length){ REPORT_CHANNELS.forEach(ch=>{ ['yanaProdTable','yanaShipTable','yanaMissProdTable','yanaMissShipTable'].forEach((id,ix)=>{ const tb=document.querySelector('#'+id+' tbody'); const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${ch}</td><td><input type="number" step="1" value="0" oninput="updateSimpleFooters()"></td>`; tb.appendChild(tr); });}); updateSimpleFooters(); addIssueRow('yanaIssueProdTable'); addIssueRow('yanaIssueShipTable'); } const saved=state.yanaReports[date]; if(saved){ const setTable=(tableId,data)=>{ const tb=document.querySelector('#'+tableId+' tbody'); Array.from(tb.rows).forEach(r=>{ const ch=r.cells[0].innerText.trim(); r.cells[1].querySelector('input').value=Number(data[ch]||0);}); }; setTable('yanaProdTable', saved.productionScheduled||{}); setTable('yanaShipTable', saved.toShip||{}); setTable('yanaMissProdTable', saved.missedProduction||{}); setTable('yanaMissShipTable', saved.missedShipped||{}); document.getElementById('yanaRisk').value=saved.risk||'Green'; document.getElementById('yanaActions').value=saved.actions||''; document.getElementById('yanaNotes').value=saved.notes||''; ['yanaIssueProdTable','yanaIssueShipTable'].forEach(id=>document.querySelector('#'+id+' tbody').innerHTML=''); (saved.issueProdRows||[]).forEach(r=>addIssueRow('yanaIssueProdTable',r)); (saved.issueShipRows||[]).forEach(r=>addIssueRow('yanaIssueShipTable',r)); if(!(saved.issueProdRows||[]).length) addIssueRow('yanaIssueProdTable'); if(!(saved.issueShipRows||[]).length) addIssueRow('yanaIssueShipTable'); updateSimpleFooters(); } renderChangeLogViews(); }
+function renderYanaFromImports(){ fillYanaTablesFromPlanner(); renderYanaTab(); }
+function saveYanaReport(){ const date=document.getElementById('yanaDate').value||new Date().toISOString().slice(0,10); const readTable=id=>{ const out={}; document.querySelectorAll('#'+id+' tbody tr').forEach(r=>{out[r.cells[0].innerText.trim()]=Number(r.cells[1].querySelector('input').value||0);}); return out; }; state.yanaReports[date]={date,risk:document.getElementById('yanaRisk').value,productionScheduled:readTable('yanaProdTable'),toShip:readTable('yanaShipTable'),missedProduction:readTable('yanaMissProdTable'),missedShipped:readTable('yanaMissShipTable'),issueProdRows:readIssueTable('yanaIssueProdTable'),issueShipRows:readIssueTable('yanaIssueShipTable'),actions:document.getElementById('yanaActions').value,notes:document.getElementById('yanaNotes').value,by:state.currentUser}; state.dailyReports[date]={...(state.dailyReports[date]||{}), ...state.yanaReports[date], by:'Yana', issues:readIssueTable('yanaIssueProdTable').map(r=>r.issue).concat(readIssueTable('yanaIssueShipTable').map(r=>r.issue)).filter(Boolean).join('; '), risk:document.getElementById('yanaRisk').value}; saveState(); appendChangeLog('Yana saved end-of-day visual for '+date); renderCalendar(); alert('Yana day saved.'); }
+function submitYanaVisualToKim(){ saveYanaReport(); const date=document.getElementById('yanaDate').value; const rep=state.yanaReports[date]||{}; const subject=encodeURIComponent('Yana end-of-day visual - '+date); const body=encodeURIComponent('Date: '+date+'\nRisk: '+(rep.risk||'')+'\nWeek: '+weekNumber(date)+'\nMonth: '+monthLabelFromDate(date)+'\n\nActions Taken / Items:\n'+(rep.actions||'')+'\n\nFinal Comments:\n'+(rep.notes||'')+'\n\nProduction Issues:\n'+(rep.issueProdRows||[]).map(r=>'- #'+(r.qty||'')+' '+(r.issue||'')+' | '+(r.resolution||'')).join('\n')+'\n\nShip Issues:\n'+(rep.issueShipRows||[]).map(r=>'- #'+(r.qty||'')+' '+(r.issue||'')+' | '+(r.resolution||'')).join('\n')); window.location.href='mailto:'+(document.getElementById('yanaRecipients').value||'kimj3341@gmail.com')+'?subject='+subject+'&body='+body; }
+function renderAllocationPanel(){
+  const sel=state.selectedAlloc; const selectedBox=document.getElementById('allocSelected'); const weekBody=document.querySelector('#allocWeekTable tbody'); const dayBody=document.querySelector('#allocDayTable tbody'); const recon=document.querySelector('#allocReconTable tbody');
+  if(!selectedBox || !weekBody || !dayBody || !recon) return;
+  weekBody.innerHTML=''; dayBody.innerHTML=''; recon.innerHTML='';
+  if(!sel){ selectedBox.textContent='No monthly cell selected yet.'; ['allocMonthTarget','allocWeeksAllocated','allocVariance'].forEach(id=>document.getElementById(id).textContent='0'); document.getElementById('allocHealth').textContent='—'; document.getElementById('allocWeekLabel').textContent='Select a week to allocate days.'; document.getElementById('allocWeekStart').value=''; document.getElementById('allocWeekEnd').value=''; return; }
+  const a=ensureAllocation(sel.channel,sel.style,sel.monthIdx); selectedBox.innerHTML=`<b>${sel.channel}</b> / <b>${sel.style}</b> / <b>${MONTHS[sel.monthIdx]}</b>`;
+  const target=Number(a.monthTarget||0); const allocTotal=a.weeks.reduce((s,w)=>s+Number(w.units||0),0); const variance=allocTotal-target;
+  document.getElementById('allocMonthTarget').textContent=fmt(target,0); document.getElementById('allocWeeksAllocated').textContent=fmt(allocTotal,0); document.getElementById('allocVariance').textContent=fmt(variance,0); document.getElementById('allocHealth').innerHTML=statusPill(Math.abs(variance)<0.01?'Green':'Red');
+  if(a.weeks.length){ document.getElementById('allocWeekStart').value='WK'+a.weeks[0].week; document.getElementById('allocWeekEnd').value='WK'+a.weeks[a.weeks.length-1].week; }
+  a.weeks.forEach((w,idx)=>{ const dayTotal=(w.days||[]).reduce((s,d)=>s+Number(d.units||0),0); const dvar=dayTotal-Number(w.units||0); const tr=document.createElement('tr'); tr.className=Math.abs(dvar)<0.01?'ok-row':'error-row'; tr.innerHTML=`<td class="left"><button class="secondary" onclick="selectAllocWeek(${idx})">WK${w.week}</button></td><td><input data-widx="${idx}" class="alloc-week-input ${w.edited?'changed-cell-gold':''}" type="number" step="1" value="${Math.round(Number(w.units||0))}"></td><td>${Math.abs(dvar)<0.01?statusPill('Green'):statusPill('Red')}</td>`; weekBody.appendChild(tr); 
+    const rtr=document.createElement('tr'); rtr.innerHTML=`<td class="left">WK${w.week}</td><td>${fmt(w.units,0)}</td><td>${fmt(dayTotal,0)}</td><td>${fmt(dvar,0)}</td><td>${Math.abs(dvar)<0.01?statusPill('Green'):statusPill('Red')}</td>`; recon.appendChild(rtr);
+  });
+  document.querySelectorAll('.alloc-week-input').forEach(inp=>{inp.onchange=e=>{const idx=+e.target.dataset.widx; a.weeks[idx].units=Number(e.target.value||0); a.weeks[idx].edited=true; saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary(); appendChangeLog('Forecast allocation week changed for '+sel.channel+' / '+sel.style+' / '+MONTHS[sel.monthIdx]+' WK'+a.weeks[idx].week);};});
+  if(state.selectedAllocWeek==null) state.selectedAllocWeek=0;
+  const wk=a.weeks[state.selectedAllocWeek];
+  if(wk){ document.getElementById('allocWeekLabel').textContent=`Daily Range for WK${wk.week}`; 
+    (wk.days||[]).forEach((d,di)=>{ const units=Number(d.units||0); let reqHours=0; DEPTS.forEach(dep=>{ const rate=(STYLE_RATES[sel.style]||{})[dep]||0; if(rate>0) reqHours+=units/rate; }); if(sel.channel==='Ecomm') reqHours=reqHours/0.6; if(sel.channel==='Amazon'){ reqHours += units * ((STYLE_RATES[sel.style]||{})['Value Added']? (1/((STYLE_RATES[sel.style]||{})['Value Added']))*2 : 0); } const avail = 8*7; const gap=avail-reqHours; const tr=document.createElement('tr'); tr.className=''; tr.innerHTML=`<td class="left">${d.date}</td><td><input data-didx="${di}" class="alloc-day-input ${d.edited?'changed-cell-gold':''}" type="number" step="1" value="${Math.round(units)}"></td><td>${fmt(reqHours,1)}</td><td>${fmt(avail,1)}</td><td>${fmt(gap,1)}</td><td>${Math.abs(gap)>=0?statusPill(gap>=0?'Green':'Red'):''}</td>`; dayBody.appendChild(tr); });
+    document.querySelectorAll('.alloc-day-input').forEach(inp=>{inp.onchange=e=>{const idx=+e.target.dataset.didx; wk.days[idx].units=Number(e.target.value||0); wk.days[idx].edited=true; saveState(); renderAllocationPanel(); renderDailyPlanner(); renderExecutiveSnapshot(); renderWeeklySummary(); appendChangeLog('Forecast allocation day changed for '+sel.channel+' / '+sel.style+' / '+wk.days[idx].date);};});
+  }
+}
+
+// V20 shipped without defining renderExecutiveSnapshot despite calling it 15 times,
+// which threw a ReferenceError inside initUI() and aborted every subsequent render
+// (including fetchBcData). Stub it here so Phase 0 can exercise the BC Live panel;
+// Phase 1 will replace this with a real renderer driven by bc_data.json.
+function renderExecutiveSnapshot(){}
+
+function initUI(){loadState(); initSelectors(); renderTabs(); renderForecast(); renderLiveForecast(); renderDailyStaffInputs(); if(!document.getElementById('plannerDate').value) document.getElementById('plannerDate').value=new Date().toISOString().slice(0,10); renderDailyPlanner(); renderSkills(); renderExecutiveSnapshot(); renderWeeklySummary(); seedReportTable(); renderCalendar(); renderAdmin(); renderYanaTab(); renderChangeLogViews(); document.getElementById('reportDate').value=document.getElementById('plannerDate').value||new Date().toISOString().slice(0,10); if(document.getElementById('reportBy')) document.getElementById('reportBy').value=(state.currentUser||'admin').charAt(0).toUpperCase()+(state.currentUser||'admin').slice(1); const scope=document.getElementById('supervisorScopeNote'); if(scope){ scope.textContent = state.currentUser==='tonya' ? 'Tonya departments: Sew, Hang Tag, Value Add' : state.currentUser==='gabe' ? 'Gabe departments: Print, Press, Cut, Fulfillment' : 'Supervisor entry by channel with totals for all channels.'; } document.getElementById('reportWeek').value=weekNumber(document.getElementById('reportDate').value); document.getElementById('reportMonth').value=monthLabelFromDate(document.getElementById('reportDate').value); loadReportFromPlanner(); fetchBcData();}
+
+async function fetchBcData(){
+  try {
+    const resp = await fetch('bc_data.json', {cache: 'no-store'});
+    if (!resp.ok) throw new Error('bc_data.json HTTP ' + resp.status);
+    window.__bcData = await resp.json();
+    renderBcLiveCard();
+  } catch (e) {
+    console.warn('BC data fetch failed:', e);
+    const el = document.getElementById('bcLastRefreshed');
+    if (el) el.textContent = 'BC data unavailable (' + e.message + ')';
+  }
+}
+
+function renderBcLiveCard(){
+  const d = window.__bcData;
+  if (!d) return;
+  const last = document.getElementById('bcLastRefreshed');
+  if (last) last.textContent = 'Last refreshed: ' + (d.generatedAtLocal || d.generatedAt || '—') + ' CT · target: ' + (d.bcTarget || '—');
+  const today = new Date();
+  const todayISO = today.toISOString().slice(0,10);
+  const horizon = new Date(today.getTime());
+  horizon.setDate(horizon.getDate() + 30);
+  const horizonISO = horizon.toISOString().slice(0,10);
+  const bbl = ((d.openDemand || {}).ECOM || {}).BBL || {};
+  let total = 0;
+  for (const [date, units] of Object.entries(bbl)) {
+    if (date >= todayISO && date <= horizonISO) total += Number(units || 0);
+  }
+  const cell = document.getElementById('bcLiveEcomBbl30');
+  if (cell) cell.textContent = Math.round(total).toLocaleString();
+  const tgt = document.getElementById('bcLiveTarget');
+  if (tgt) tgt.textContent = d.bcTarget || '—';
+  const warn = document.getElementById('bcLiveWarnings');
+  if (warn) warn.textContent = ((d.warnings || []).length) + ' warning(s)';
+}
+loadState();
+// Phase 0 testing: auto-login as admin (no password screen). Remove these
+// three lines and re-show loginView to restore the full sign-in flow.
+if (!state.currentUser) state.currentUser = 'admin';
+document.getElementById('whoami').textContent = 'Logged in: ' + state.currentUser;
+initUI();
+</script>
+</body>
+</html>

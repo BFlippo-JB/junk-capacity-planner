@@ -1,0 +1,17 @@
+{
+  "bcTarget": "production",
+  "contentHashSHA256": "8719925cdbe60d118bc75cf71e0bc6fb4056eef99f663f8123fdb8c03c7597ae",
+  "durationSeconds": 38.814466,
+  "generatedAt": "2026-04-21T02:40:31Z",
+  "generatedAtLocal": "2026-04-20T21:41:10",
+  "rowCounts": {
+    "bomsInCache": 18,
+    "itemsInCache": 1961,
+    "openSalesLines": 8446,
+    "openSalesOrderHeaders": 1390,
+    "outstandingItemLines": 4378
+  },
+  "warnings": [
+    "19 item(s) with unresolved ProductType skipped (sample: ['APEX HAT OBSIDIAN', 'BT LS ASTRAL PURPLE', 'BT TS BONE WHITE', 'BT TS ONYX BLACK', 'M BT JOG GLACIER'])"
+  ]
+}
