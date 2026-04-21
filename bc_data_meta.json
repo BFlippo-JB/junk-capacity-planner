@@ -1,17 +1,21 @@
 {
   "bcTarget": "production",
-  "contentHashSHA256": "8719925cdbe60d118bc75cf71e0bc6fb4056eef99f663f8123fdb8c03c7597ae",
-  "durationSeconds": 38.814466,
-  "generatedAt": "2026-04-21T02:40:31Z",
-  "generatedAtLocal": "2026-04-20T21:41:10",
+  "contentHashSHA256": "4e80b73cf964edd9d323e9f86585270867b99ccc063eeea000e969e56e4f0b57",
+  "durationSeconds": 52.89573,
+  "generatedAt": "2026-04-21T18:08:54Z",
+  "generatedAtLocal": "2026-04-21T13:09:47",
   "rowCounts": {
     "bomsInCache": 18,
-    "itemsInCache": 1961,
-    "openSalesLines": 8446,
-    "openSalesOrderHeaders": 1390,
-    "outstandingItemLines": 4378
+    "itemsInCache": 2041,
+    "openSalesLines": 8192,
+    "openSalesOrderHeaders": 1365,
+    "outstandingItemLines": 4209
   },
   "warnings": [
-    "19 item(s) with unresolved ProductType skipped (sample: ['APEX HAT OBSIDIAN', 'BT LS ASTRAL PURPLE', 'BT TS BONE WHITE', 'BT TS ONYX BLACK', 'M BT JOG GLACIER'])"
+    "item M BT TANK SLATEGRAY has no ProductType (desc='Men's Breakthrough Tank: Slate Gray', bom='')",
+    "item UOA SURGE CARDINAL has no ProductType (desc='University of Arkansas: Surge Hat Cardinal', bom='')",
+    "item UOA BB SURGE SNOW has no ProductType (desc='University of Arkansas: Baseball Surge Hat Arctic Snow', bom='')",
+    "item UOA SURGE OBSIDIAN has no ProductType (desc='University of Arkansas: Surge Hat Obsidian', bom='')",
+    "19 item(s) with unresolved ProductType skipped (sample: ['APEX HAT OBSIDIAN', 'BT TS BONE WHITE', 'BT TS ONYX BLACK', 'M BT JOG GLACIER', 'M BT JOG OBSID'])"
   ]
 }

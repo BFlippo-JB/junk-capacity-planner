@@ -1,36 +1,35 @@
 {
   "bcTarget": "production",
   "capacityActuals": {},
-  "generatedAt": "2026-04-21T02:40:31Z",
-  "generatedAtLocal": "2026-04-20T21:41:10",
+  "generatedAt": "2026-04-21T18:08:54Z",
+  "generatedAtLocal": "2026-04-21T13:09:47",
   "horizonDays": 90,
   "openDemand": {
     "ECOM": {
       "BAL": {
-        "2026-04-20": 3.0,
-        "2026-04-21": 1.0,
+        "2026-04-21": 2.0,
         "2026-04-22": 3.0,
         "2026-04-23": 6.0,
         "2026-04-24": 4.0,
         "2026-04-27": 12.0
       },
       "BB": {
-        "2026-04-20": 4.0,
-        "2026-04-21": 15.0,
-        "2026-04-22": 24.0,
+        "2026-04-21": 5.0,
+        "2026-04-22": 26.0,
         "2026-04-23": 31.0,
         "2026-04-24": 10.0,
         "2026-04-27": 46.0,
-        "2026-04-28": 11.0
+        "2026-04-28": 13.0,
+        "2026-04-29": 13.0
       },
       "BBL": {
-        "2026-04-20": 182.0,
-        "2026-04-21": 499.0,
-        "2026-04-22": 398.0,
+        "2026-04-21": 375.0,
+        "2026-04-22": 399.0,
         "2026-04-23": 517.0,
         "2026-04-24": 460.0,
         "2026-04-27": 1374.0,
-        "2026-04-28": 327.0
+        "2026-04-28": 374.0,
+        "2026-04-29": 131.0
       },
       "BDT SM": {
         "2026-04-21": 2.0
@@ -40,31 +39,31 @@
       },
       "ESC": {
         "2026-04-21": 1.0,
-        "2026-04-28": 1.0
+        "2026-04-28": 1.0,
+        "2026-04-29": 2.0
       },
       "EW": {
-        "2026-04-20": 1.0,
         "2026-04-22": 3.0,
         "2026-04-24": 1.0,
         "2026-04-27": 1.0
       },
       "FT": {
-        "2026-04-20": 13.0,
-        "2026-04-21": 60.0,
-        "2026-04-22": 38.0,
+        "2026-04-21": 61.0,
+        "2026-04-22": 41.0,
         "2026-04-23": 35.0,
         "2026-04-24": 38.0,
         "2026-04-27": 91.0,
-        "2026-04-28": 26.0
+        "2026-04-28": 26.0,
+        "2026-04-29": 4.0
       },
       "INF": {
-        "2026-04-20": 33.0,
-        "2026-04-21": 32.0,
+        "2026-04-21": 19.0,
         "2026-04-22": 25.0,
         "2026-04-23": 20.0,
         "2026-04-24": 33.0,
         "2026-04-27": 72.0,
-        "2026-04-28": 13.0
+        "2026-04-28": 18.0,
+        "2026-04-29": 6.0
       },
       "SCRNCH": {
         "2026-04-24": 1.0
@@ -82,6 +81,10 @@
   },
   "poPipeline": {},
   "warnings": [
-    "19 item(s) with unresolved ProductType skipped (sample: ['APEX HAT OBSIDIAN', 'BT LS ASTRAL PURPLE', 'BT TS BONE WHITE', 'BT TS ONYX BLACK', 'M BT JOG GLACIER'])"
+    "item M BT TANK SLATEGRAY has no ProductType (desc='Men's Breakthrough Tank: Slate Gray', bom='')",
+    "item UOA SURGE CARDINAL has no ProductType (desc='University of Arkansas: Surge Hat Cardinal', bom='')",
+    "item UOA BB SURGE SNOW has no ProductType (desc='University of Arkansas: Baseball Surge Hat Arctic Snow', bom='')",
+    "item UOA SURGE OBSIDIAN has no ProductType (desc='University of Arkansas: Surge Hat Obsidian', bom='')",
+    "19 item(s) with unresolved ProductType skipped (sample: ['APEX HAT OBSIDIAN', 'BT TS BONE WHITE', 'BT TS ONYX BLACK', 'M BT JOG GLACIER', 'M BT JOG OBSID'])"
   ]
 }
