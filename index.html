@@ -91,14 +91,31 @@ table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;borde
 
   <section id="tab-forecast" class="tab">
     <div class="panel">
-      <div class="toolbar"><h2 style="margin:0">Baseline Sales Forecast</h2><div class="small">Locked baseline forecast. Each month now shows units plus mix % of the channel total, with year-end % at the far right. This page does not drive planning.</div></div><div class="banner-note">Baseline = static original forecast. Dynamic Forecast is the live planning driver.</div>
+      <div class="toolbar"><h2 style="margin:0">Baseline Sales Forecast</h2><div class="small">Your annual plan / budget. Imported once per cycle. Dynamic Forecast merges BC live demand on top of this baseline.</div></div>
+      <div class="banner-note">Baseline is the floor when BC has no demand for a channel × style × month. Import your CSV or JSON — empty by default.</div>
+      <div class="toolbar">
+        <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#eef2f8;cursor:pointer"><input type="file" id="baselineCsvFile" accept=".csv,text/csv" style="display:none" onchange="importBaselineCsvFile(event)">Import CSV…</label>
+        <button class="secondary" onclick="openBaselineJsonDialog()">Paste JSON…</button>
+        <button class="secondary" onclick="loadDemoBaseline()">Load demo baseline</button>
+        <button class="secondary" onclick="exportBaselineJson()">Export JSON</button>
+        <button class="secondary" onclick="clearBaseline()">Clear baseline</button>
+        <span id="baselineStatus" class="small"></span>
+      </div>
+      <div id="baselineJsonDialog" class="panel hidden" style="background:#fff8db;border:1px solid #f0d36d">
+        <div class="small" style="margin-bottom:6px">Paste a JSON object shaped as <code>{channel: {style: [12 monthly units]}}</code>. Channel codes must match BC (REPL, WHSL, ECOM, etc.).</div>
+        <textarea id="baselineJsonInput" placeholder='{"ECOM": {"BBL": [100, 120, ...]}}'></textarea>
+        <div class="toolbar" style="margin-top:6px">
+          <button onclick="importBaselineJsonPaste()">Import</button>
+          <button class="secondary" onclick="document.getElementById('baselineJsonDialog').classList.add('hidden')">Cancel</button>
+        </div>
+      </div>
       <table id="forecastTable"><thead><tr><th class="left">Channel</th><th class="left">Style</th><th>Jan<br><span class="subnote">Units / Mix%</span></th><th>Feb<br><span class="subnote">Units / Mix%</span></th><th>Mar<br><span class="subnote">Units / Mix%</span></th><th>Apr<br><span class="subnote">Units / Mix%</span></th><th>May<br><span class="subnote">Units / Mix%</span></th><th>Jun<br><span class="subnote">Units / Mix%</span></th><th>Jul<br><span class="subnote">Units / Mix%</span></th><th>Aug<br><span class="subnote">Units / Mix%</span></th><th>Sep<br><span class="subnote">Units / Mix%</span></th><th>Oct<br><span class="subnote">Units / Mix%</span></th><th>Nov<br><span class="subnote">Units / Mix%</span></th><th>Dec<br><span class="subnote">Units / Mix%</span></th><th>Total</th><th class="pct-col">Yr %</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 
   <section id="tab-forecastlive" class="tab">
     <div class="panel">
-      <div class="toolbar"><h2 style="margin:0">Dynamic Forecast</h2><div class="small">Editable live forecast. Changed month cells turn yellow and this tab drives Executive Snapshot, Daily Planner, and Weekly Summary.</div><label>Focus Month <select id="focusMonthSel" onchange="setFocusMonth(this.value)"><option value="">Show all</option><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option></select></label><button class="secondary" onclick="resetAllDynamicForecast()">Reset Dynamic to Original Forecast</button></div><div class="banner-note">Dynamic Forecast = live operating forecast. Click into a month cell to type normally, then press Enter or click out to save. Focus Month shows product mix only for the month you are working on.</div>
+      <div class="toolbar"><h2 style="margin:0">Dynamic Forecast</h2><div class="small">Editable live forecast. Each cell shows BC live demand merged with your baseline; your overrides turn yellow. Drives Executive Snapshot, Daily Planner, and Weekly Summary.</div><label>Focus Month <select id="focusMonthSel" onchange="setFocusMonth(this.value)"><option value="">Show all</option><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option></select></label><button class="secondary" onclick="resetAllDynamicForecast()">Clear all overrides</button></div><div class="banner-note">Merge order per cell: your override ← BC live demand ← baseline forecast ← 0. Clear an override by pressing Reset on that cell, or "Clear all overrides" to fall back to BC + baseline.</div>
       <table id="forecastLiveTable"><thead><tr><th class="left">Channel</th><th class="left">Style</th><th>Jan<br><span class="subnote">Units / Mix%</span></th><th>Feb<br><span class="subnote">Units / Mix%</span></th><th>Mar<br><span class="subnote">Units / Mix%</span></th><th>Apr<br><span class="subnote">Units / Mix%</span></th><th>May<br><span class="subnote">Units / Mix%</span></th><th>Jun<br><span class="subnote">Units / Mix%</span></th><th>Jul<br><span class="subnote">Units / Mix%</span></th><th>Aug<br><span class="subnote">Units / Mix%</span></th><th>Sep<br><span class="subnote">Units / Mix%</span></th><th>Oct<br><span class="subnote">Units / Mix%</span></th><th>Nov<br><span class="subnote">Units / Mix%</span></th><th>Dec<br><span class="subnote">Units / Mix%</span></th><th>Total</th><th class="pct-col">Yr %</th></tr></thead><tbody></tbody></table>
       <div class="panel" style="margin-top:12px">
         <div class="toolbar"><h3 style="margin:0">Forecast Drill Down</h3><div class="small">Click <b>Plan</b> on any monthly dynamic cell, then allocate that exact channel + style + month by week and by day.</div></div>
@@ -362,26 +379,66 @@ table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;borde
 <script>
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DEPTS=['Sewing','Print','Press','Cut','Value Added','Hang Tag'];
-const CHANNELS=['Ecomm','Amazon','Wholesale','Custom','Garage','Events'];
-const REPORT_CHANNELS=['Wholesale','Ecomm','Amazon','Dicks','Academy','Custom','Events','Other','Replen'];
+// BC-native channel codes (Shortcut_Dimension_1_Code verbatim). Edit here and in
+// channel_style_config.json when BC dimensions change. No V20 aliases.
+const CHANNELS=['REPL','WHSL','ECOM','WHSL EVENTS','WHSL RUSH','CUSTOM','WHSL SB','AMZN','EVENTS','DSG','RETAIL','PROMO','RUSH REPL'];
+const REPORT_CHANNELS=CHANNELS;
+// Legacy V20 channel names → BC code. Used once on first load of V1 to migrate
+// any pre-refactor state. Garage is dropped (no BC equivalent).
+const LEGACY_CHANNEL_MAP={Ecomm:'ECOM',Amazon:'AMZN',Wholesale:'WHSL',Custom:'CUSTOM',Events:'EVENTS'};
 const USERS={tonya:{password:'tonya',tabs:['exec','planner','skills','report','calendar'],depts:['Sewing','Hang Tag','Value Added']},gabe:{password:'gabe',tabs:['exec','planner','skills','report','calendar'],depts:['Print','Press','Cut','Fulfillment']},yana:{password:'yana',tabs:['exec','weekly','report','yana','leadership','calendar','forecast','forecastlive'],depts:DEPTS},admin:{password:'admin',tabs:['exec','forecast','forecastlive','planner','weekly','skills','report','yana','leadership','calendar','admin'],depts:DEPTS}};
 const STYLE_RATES={BBL:{Sewing:95,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},FT:{Sewing:36,Print:1440,Press:1728,Cut:200,'Value Added':300,'Hang Tag':300},FLEX:{Sewing:36,Print:1440,Press:1728,Cut:200,'Value Added':300,'Hang Tag':300},BB:{Sewing:25,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},EW:{Sewing:18,Print:1440,Press:1728,Cut:150,'Value Added':300,'Hang Tag':450},BAL:{Sewing:25,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},INF:{Sewing:0,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},INFINITY:{Sewing:0,Print:1440,Press:1728,Cut:400,'Value Added':300,'Hang Tag':450},WGTR:{Sewing:15,Print:1440,Press:1728,Cut:150,'Value Added':300,'Hang Tag':240},BN:{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0},TS:{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0},'BDT SM':{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0},'BDT ML':{Sewing:0,Print:1440,Press:1728,Cut:0,'Value Added':300,'Hang Tag':0}};
-const FORECAST={
+// Demo baseline — old V20 hardcoded forecast, keyed by legacy names, kept only
+// so "Load demo baseline" on the Baseline tab can populate an empty state.
+// Not a source of truth. Baseline is state.baselineForecast (user-imported).
+const DEMO_BASELINE={
   Ecomm:{BBL:[14483,15973,19211,21028,27770,27477,29771,24077,28161,21256,18775,40929],FT:[1121,1308,1530,1715,2030,2083,1990,1526,1511,1237,824,2470],BB:[565,465,500,565,695,720,740,625,725,530,450,995],EW:[1235,413,213,112,113,61,75,104,233,470,1286,4599],BAL:[210,230,270,310,310,250,310,210,200,150,100,450],INF:[501,644,684,979,1263,1200,1258,1077,1060,924,739,982],WGTR:[319,212,81,50,40,32,41,31,99,91,199,1031],'BDT SM':[10,10,20,20,50,50,40,40,35,30,30,30],'BDT ML':[20,20,40,40,100,100,80,80,70,60,60,60],BN:[111,44,27,16,25,10,17,17,27,46,973,720],TS:[50,50,60,70,70,70,70,70,60,60,120,120]},
-  Amazon:{BBL:[6697,9959,12767,13508,15948,20444,20088,18620,14631,12785,10554,14127],FT:[415,617,791,837,988,1267,1245,1154,907,792,654,876],BB:[0,0,0,0,0,0,0,0,0,0,0,0],EW:[166,247,317,335,396,507,499,462,363,317,262,351],BAL:[0,0,0,0,0,0,0,0,0,0,0,0],INF:[0,0,0,0,0,0,0,0,0,0,0,0],WGTR:[58,86,110,117,138,177,174,161,127,111,91,122],BN:[0,0,0,0,0,0,0,0,0,0,0,0],TS:[19,27,35,37,44,56,55,51,40,35,29,39]},
-  Wholesale:{BBL:[12800.8,16800,28000,21599.2,14400.8,14400,30400,34000,25600,9599.2,8656,8559.2],FLEX:[1920.12,2520,4200,3239.88,2160.12,2160,4560,5100,3840,1439.88,1298.4,1283.88],INFINITY:[1280.08,1680,2800,2159.92,1440.08,1440,3040,3400,2560,959.92,865.6,855.92]},
-  Custom:{BBL:[5492.8,9594.4,6776,7405.6,6144.8,8065.6,6825.6,10463.2,11279.2,7138.4,6039.2,4375.2],FLEX:[686.6,1199.3,847,925.7,768.1,1008.2,853.2,1307.9,1409.9,892.3,754.9,546.9],INFINITY:[686.6,1199.3,847,925.7,768.1,1008.2,853.2,1307.9,1409.9,892.3,754.9,546.9]},
-  Garage:{BBL:[77,177,122,386,116,161,161,244,193,386,283,283],FT:[9,21,15,46,14,19,19,29,23,46,34,34],BB:[2,5,3,10,3,4,4,6,5,10,7,7],EW:[1,3,2,6,2,2,2,4,3,6,4,4],BAL:[1,2,2,5,2,2,2,3,3,5,4,4],INF:[5,11,8,24,7,10,10,15,12,24,18,18],WGTR:[1,2,2,5,1,2,2,3,2,5,3,3],BN:[1,2,1,3,1,1,1,2,2,3,2,2],TS:[2,4,3,9,3,4,4,6,4,9,7,7]},
-  Events:{BBL:[0,0,1451,164,0,3627,94,0,0,1076,0,0],FT:[0,0,29,3,0,72,2,0,0,21,0,0],BB:[0,0,21,2,0,52,1,0,0,15,0,0],EW:[0,0,2,0,0,6,0,0,0,2,0,0],BAL:[0,0,0,0,0,0,0,0,0,0,0,0],INF:[0,0,62,7,0,154,4,0,0,46,0,0],WGTR:[0,0,4,1,0,11,0,0,0,3,0,0],BN:[0,0,8,1,0,21,1,0,0,6,0,0],TS:[0,0,0,0,0,1,0,0,0,0,0,0]}
+  Amazon:{BBL:[6697,9959,12767,13508,15948,20444,20088,18620,14631,12785,10554,14127],FT:[415,617,791,837,988,1267,1245,1154,907,792,654,876],EW:[166,247,317,335,396,507,499,462,363,317,262,351],WGTR:[58,86,110,117,138,177,174,161,127,111,91,122],TS:[19,27,35,37,44,56,55,51,40,35,29,39]},
+  Wholesale:{BBL:[12800.8,16800,28000,21599.2,14400.8,14400,30400,34000,25600,9599.2,8656,8559.2]},
+  Custom:{BBL:[5492.8,9594.4,6776,7405.6,6144.8,8065.6,6825.6,10463.2,11279.2,7138.4,6039.2,4375.2]},
+  Events:{BBL:[0,0,1451,164,0,3627,94,0,0,1076,0,0],FT:[0,0,29,3,0,72,2,0,0,21,0,0],BB:[0,0,21,2,0,52,1,0,0,15,0,0],EW:[0,0,2,0,0,6,0,0,0,2,0,0],INF:[0,0,62,7,0,154,4,0,0,46,0,0],WGTR:[0,0,4,1,0,11,0,0,0,3,0,0],BN:[0,0,8,1,0,21,1,0,0,6,0,0]}
 };
 const STORAGE_KEY='junk_capacity_planner_v1';
 const LEGACY_STORAGE_KEY='junk_sched_master_v9';
-let state={currentUser:null,passwords:{tonya:'tonya',gabe:'gabe',yana:'yana',admin:'admin'},availablePeople:{},dynamicForecast:{},allocations:{},selectedAlloc:null,selectedAllocWeek:null,skills:[{name:'Tonya Example',home:'Sewing',levels:{'Sewing':3,'Print':0,'Press':0,'Cut':0,'Value Added':2,'Hang Tag':3},star:'Sewing'},{name:'Gabe Example',home:'Print',levels:{'Sewing':0,'Print':3,'Press':3,'Cut':2,'Value Added':0,'Hang Tag':0},star:'Print'}],changeLog:[],plannerHistory:{},dailyReports:{},yanaReports:{},submissions:{}};
+let state={currentUser:null,passwords:{tonya:'tonya',gabe:'gabe',yana:'yana',admin:'admin'},availablePeople:{},baselineForecast:{},dynamicForecast:{},bcForecast:{},allocations:{},selectedAlloc:null,selectedAllocWeek:null,skills:[{name:'Tonya Example',home:'Sewing',levels:{'Sewing':3,'Print':0,'Press':0,'Cut':0,'Value Added':2,'Hang Tag':3},star:'Sewing'},{name:'Gabe Example',home:'Print',levels:{'Sewing':0,'Print':3,'Press':3,'Cut':2,'Value Added':0,'Hang Tag':0},star:'Print'}],changeLog:[],plannerHistory:{},dailyReports:{},yanaReports:{},submissions:{}};
 function defaultAvailPeople(){const obj={};DEPTS.forEach(d=>obj[d]=Array(12).fill(d==='Sewing'?8:d==='Cut'?3:d==='Hang Tag'?3:d==='Value Added'?1:2));return obj;}
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
+// state.bcForecast is rebuilt from bc_data.json at every page load — don't persist.
+function saveState(){const {bcForecast, ...persist}=state; localStorage.setItem(STORAGE_KEY,JSON.stringify(persist));}
 function deepCopy(x){return JSON.parse(JSON.stringify(x));}
-function ensureDynamicForecast(){ if(!state.dynamicForecast || !Object.keys(state.dynamicForecast).length){ state.dynamicForecast=deepCopy(FORECAST);} else { for(const [ch,styles] of Object.entries(FORECAST)){ if(!state.dynamicForecast[ch]) state.dynamicForecast[ch]=deepCopy(styles); for(const [style,arr] of Object.entries(styles)){ if(!state.dynamicForecast[ch][style]) state.dynamicForecast[ch][style]=arr.slice(); for(let i=0;i<12;i++){ if(typeof state.dynamicForecast[ch][style][i] !== 'number') state.dynamicForecast[ch][style][i]=Number(arr[i]||0); } } } } }
-function loadState(){try{let raw=localStorage.getItem(STORAGE_KEY);if(!raw){const legacy=localStorage.getItem(LEGACY_STORAGE_KEY);if(legacy){localStorage.setItem(STORAGE_KEY,legacy);raw=legacy;}}if(raw){const parsed=JSON.parse(raw);state={...state,...parsed};}}catch(e){} if(!state.availablePeople||!Object.keys(state.availablePeople).length) state.availablePeople=defaultAvailPeople(); ensureDynamicForecast();}
+// V20 seeded state.dynamicForecast from FORECAST on load. V1 keeps it as a
+// sparse override map only — absence means "use BC + baseline". If legacy state
+// shows up as a dense matrix (from pre-Phase-1 V1), migrate it into overrides-only
+// by diffing against the demo baseline (anything that matches a demo cell is noise,
+// anything else is treated as a real override).
+function migrateLegacyDynamicForecast(){
+  if(!state.dynamicForecast || typeof state.dynamicForecast!=='object') { state.dynamicForecast={}; return; }
+  const out={};
+  for(const [ch,styles] of Object.entries(state.dynamicForecast)){
+    if(!styles || typeof styles!=='object') continue;
+    const newCh = LEGACY_CHANNEL_MAP[ch] || ch;
+    for(const [style,arr] of Object.entries(styles)){
+      if(!arr) continue;
+      if(Array.isArray(arr)){
+        // Legacy dense shape: compare against DEMO_BASELINE cell by cell.
+        const demo = ((DEMO_BASELINE[ch]||{})[style])||[];
+        for(let i=0;i<12;i++){
+          const v=Number(arr[i]||0);
+          const base=Number(demo[i]||0);
+          if(v!==base){ if(!out[newCh]) out[newCh]={}; if(!out[newCh][style]) out[newCh][style]={}; out[newCh][style][i]=v; }
+        }
+      } else if(typeof arr==='object'){
+        // Already sparse (post-Phase-1 shape) — carry over under new channel code.
+        for(const [mk,v] of Object.entries(arr)){
+          if(v==null) continue;
+          if(!out[newCh]) out[newCh]={}; if(!out[newCh][style]) out[newCh][style]={};
+          out[newCh][style][mk]=Number(v);
+        }
+      }
+    }
+  }
+  state.dynamicForecast=out;
+}
+function loadState(){try{let raw=localStorage.getItem(STORAGE_KEY);if(!raw){const legacy=localStorage.getItem(LEGACY_STORAGE_KEY);if(legacy){localStorage.setItem(STORAGE_KEY,legacy);raw=legacy;}}if(raw){const parsed=JSON.parse(raw);state={...state,...parsed};}}catch(e){} if(!state.availablePeople||!Object.keys(state.availablePeople).length) state.availablePeople=defaultAvailPeople(); if(!state.baselineForecast||typeof state.baselineForecast!=='object') state.baselineForecast={}; state.bcForecast={}; migrateLegacyDynamicForecast();}
 function fmt(n,d=0){return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});}
 function statusPill(v){const cls=v==='Green'?'green':v==='Yellow'?'yellow':'red';return `<span class="status ${cls}">${v}</span>`;}
 function monthIndexFromDate(dateStr){return new Date(dateStr+'T00:00:00').getMonth();}
@@ -390,9 +447,39 @@ function weekNumber(dateStr){const d=new Date(dateStr+'T00:00:00');d.setHours(0,
 function mondayOfWeek(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d;}
 function iso(d){return new Date(d).toISOString().slice(0,10);}
 function getWorkdaysInMonth(year,month){const days=[];for(let d=1;d<=31;d++){const dt=new Date(year,month,d);if(dt.getMonth()!==month)break;const wd=dt.getDay();if(wd!==0&&wd!==6)days.push(dt);}return days;}
-function getForecastData(){return state.dynamicForecast||FORECAST;}
-function aggregateForecastMonth(monthIdx){let units=0; Object.values(getForecastData()).forEach(styles=>Object.values(styles).forEach(arr=>units+=Number(arr[monthIdx]||0))); return units;}
-function aggregateForecastHours(monthIdx){const totals=Object.fromEntries(DEPTS.map(d=>[d,0])); for(const [channel,styles] of Object.entries(getForecastData())){ for(const [style,arr] of Object.entries(styles)){ const units=Number(arr[monthIdx]||0); DEPTS.forEach(dep=>{const rate=(STYLE_RATES[style]||{})[dep]||0; if(rate>0) totals[dep]+=units/rate;}); }} return totals;}
+// Layer lookups — single source of truth for "what is the forecast for this cell?".
+// Precedence: dynamic override ← BC live ← baseline ← 0.
+function hasForecastOverride(channel,style,monthIdx){
+  const entry=(state.dynamicForecast||{})[channel]; if(!entry) return false;
+  const s=entry[style]; if(!s || typeof s!=='object') return false;
+  return Object.prototype.hasOwnProperty.call(s, String(monthIdx));
+}
+function forecastBaseValue(channel,style,monthIdx){
+  const bc=((state.bcForecast||{})[channel]||{})[style];
+  if(bc && bc[monthIdx]!=null) return Number(bc[monthIdx]);
+  const base=((state.baselineForecast||{})[channel]||{})[style];
+  if(base && base[monthIdx]!=null) return Number(base[monthIdx]);
+  return 0;
+}
+function forecastValue(channel,style,monthIdx){
+  if(hasForecastOverride(channel,style,monthIdx)) return Number(state.dynamicForecast[channel][style][monthIdx]);
+  return forecastBaseValue(channel,style,monthIdx);
+}
+// Dense merged matrix for callers that iterate (daily planner, hours rollup,
+// channel/style union). Rebuilt on each call; call-sites are per-render so the
+// cost is negligible. Overrides can introduce channel/style rows that don't
+// exist in BC or baseline — those get represented here too.
+function getForecastData(){
+  const out={};
+  const ensure=(ch,st)=>{ if(!out[ch]) out[ch]={}; if(!out[ch][st]) out[ch][st]=Array(12).fill(0); };
+  const addSource=(src)=>{ if(!src) return; for(const ch of Object.keys(src)){ for(const st of Object.keys(src[ch]||{})){ ensure(ch,st); const arr=src[ch][st]||[]; for(let i=0;i<12;i++){ const v=Number(arr[i]||0); if(v) out[ch][st][i]=v; } } } };
+  addSource(state.bcForecast);
+  addSource(state.baselineForecast);
+  if(state.dynamicForecast){ for(const ch of Object.keys(state.dynamicForecast)){ for(const st of Object.keys(state.dynamicForecast[ch]||{})){ ensure(ch,st); const ov=state.dynamicForecast[ch][st]||{}; for(const mk of Object.keys(ov)){ const m=+mk; if(!Number.isNaN(m)) out[ch][st][m]=Number(ov[mk]); } } } }
+  return out;
+}
+function aggregateForecastMonth(monthIdx){let units=0; const data=getForecastData(); Object.values(data).forEach(styles=>Object.values(styles).forEach(arr=>units+=Number(arr[monthIdx]||0))); return units;}
+function aggregateForecastHours(monthIdx){const totals=Object.fromEntries(DEPTS.map(d=>[d,0])); const data=getForecastData(); for(const styles of Object.values(data)){ for(const [style,arr] of Object.entries(styles)){ const units=Number(arr[monthIdx]||0); DEPTS.forEach(dep=>{const rate=(STYLE_RATES[style]||{})[dep]||0; if(rate>0) totals[dep]+=units/rate;}); }} return totals;}
 function channelMonthTotal(data,channel,monthIdx){return Object.values(data[channel]||{}).reduce((a,arr)=>a+Number(arr[monthIdx]||0),0);}
 function channelYearTotal(data,channel){return Object.values(data[channel]||{}).reduce((a,arr)=>a+arr.reduce((x,y)=>x+Number(y||0),0),0);}
 
@@ -410,7 +497,11 @@ function buildMonthWeeks(year,monthIdx){
 }
 function ensureAllocation(channel,style,monthIdx){
   const key=allocationKey(channel,style,monthIdx);
-  const target=Number((((state.dynamicForecast||{})[channel]||{})[style]||[])[monthIdx]||0);
+  // Must route through forecastValue, not raw dynamicForecast — otherwise an
+  // allocation built before a BC or baseline change would stick to a stale
+  // target. V20's direct read of state.dynamicForecast here was the
+  // allocation-corruption risk called out in the Phase 1 plan.
+  const target=forecastValue(channel,style,monthIdx);
   if(!state.allocations[key]){
     const year=(new Date()).getFullYear();
     const weeks=buildMonthWeeks(year,monthIdx);
@@ -471,7 +562,6 @@ function rebalanceDays(){ if(!state.selectedAlloc) return; const a=ensureAllocat
 
 function monthWeekRange(dateStr){ const monthIdx=monthIndexFromDate(dateStr); const year=new Date(dateStr+'T00:00:00').getFullYear(); const days=getWorkdaysInMonth(year,monthIdx); if(!days.length) return ''; return 'W'+weekNumber(iso(days[0]))+'-W'+weekNumber(iso(days[days.length-1])); }
 
-function mapToReportChannel(ch){ return ch==='Garage' ? 'Other' : ch; }
 function forecastChannelUnitsForDate(dateStr){
   const dt=new Date(dateStr+'T00:00:00'); const monthIdx=dt.getMonth();
   const out=Object.fromEntries(REPORT_CHANNELS.map(c=>[c,0]));
@@ -492,7 +582,7 @@ function forecastChannelUnitsForDate(dateStr){
       } else {
         const days=getWorkdaysInMonth(dt.getFullYear(),monthIdx).length||1; units=target/days;
       }
-      const rc=mapToReportChannel(ch); if(out[rc]!==undefined) out[rc]+=units;
+      if(out[ch]!==undefined) out[ch]+=units;
     }
   }
   Object.keys(out).forEach(k=>out[k]=Math.round(out[k]));
@@ -557,11 +647,105 @@ function openTab(tab,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.cla
 function login(){loadState(); const u=document.getElementById('loginUser').value.trim().toLowerCase(); const p=document.getElementById('loginPass').value; if(!USERS[u] || (state.passwords[u]||USERS[u].password)!==p){document.getElementById('loginMsg').textContent='Login did not match.'; return;} state.currentUser=u; saveState(); document.getElementById('loginView').classList.add('hidden'); document.getElementById('appView').classList.remove('hidden'); document.getElementById('whoami').textContent='Logged in: '+u; initUI();}
 function logout(){state.currentUser=null; saveState(); document.getElementById('appView').classList.add('hidden'); document.getElementById('loginView').classList.remove('hidden');}
 function initSelectors(){['execMonthSel','weekMonthSel','monthlySummarySel','calendarMonthSel'].forEach(id=>{const sel=document.getElementById(id); sel.innerHTML=MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');}); const weeks=[...new Set(Object.keys(state.dailyReports).map(d=>weekNumber(d)).concat(Array.from({length:53},(_,i)=>i+1)))].sort((a,b)=>a-b); const wsel=document.getElementById('weekSel'); wsel.innerHTML=weeks.map(w=>`<option value="${w}">Week ${w}</option>`).join(''); document.getElementById('execMonthSel').value=new Date().getMonth(); document.getElementById('weekMonthSel').value=new Date().getMonth(); document.getElementById('monthlySummarySel').value=new Date().getMonth(); document.getElementById('calendarMonthSel').value=new Date().getMonth(); const wvm=document.getElementById('weeklyViewMode'); if(wvm) wvm.value='week'; const leadDate=document.getElementById('leadDate'); if(leadDate && !leadDate.value) leadDate.value=new Date().toISOString().slice(0,10);}
-function renderForecast(){const tb=document.querySelector('#forecastTable tbody'); tb.innerHTML=''; for(const [channel,styles] of Object.entries(FORECAST)){ const monthTotals=MONTHS.map((_,i)=>channelMonthTotal(FORECAST,channel,i)); const yearTotal=channelYearTotal(FORECAST,channel)||1; for(const [style,arr] of Object.entries(styles)){ const tr=document.createElement('tr'); const total=arr.reduce((a,b)=>a+Number(b||0),0); tr.innerHTML=`<td class="left">${channel}</td><td class="left">${style}</td>${arr.map((v,i)=>`<td class="num">${fmt(v,0)}<span class="mix">Mix ${fmt((Number(v||0)/Math.max(monthTotals[i],1))*100,1)}%</span></td>`).join('')}<td class="num"><b>${fmt(total,0)}</b></td><td class="num pct-col"><b>${fmt(total/yearTotal*100,1)}%</b></td>`; tb.appendChild(tr);} }}
+function renderForecast(){
+  const tb=document.querySelector('#forecastTable tbody'); if(!tb) return;
+  tb.innerHTML='';
+  const base=state.baselineForecast||{};
+  const channels=Object.keys(base);
+  const status=document.getElementById('baselineStatus');
+  if(!channels.length){
+    tb.innerHTML=`<tr><td class="left" colspan="16">No baseline imported yet. Use <b>Import CSV</b>, <b>Paste JSON</b>, or <b>Load demo baseline</b>.</td></tr>`;
+    if(status) status.textContent='Empty. Baseline drives forecast in months where BC has no live demand.';
+    return;
+  }
+  let rowCount=0;
+  channels.sort().forEach(channel=>{
+    const styles=base[channel]||{};
+    const monthTotals=MONTHS.map((_,i)=>channelMonthTotal(base,channel,i));
+    const yearTotal=channelYearTotal(base,channel)||1;
+    Object.keys(styles).sort().forEach(style=>{
+      const arr=styles[style]||[];
+      const total=arr.reduce((a,b)=>a+Number(b||0),0);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td class="left">${channel}</td><td class="left">${style}</td>${MONTHS.map((_,i)=>`<td class="num">${fmt(Number(arr[i]||0),0)}<span class="mix">Mix ${fmt((Number(arr[i]||0)/Math.max(monthTotals[i],1))*100,1)}%</span></td>`).join('')}<td class="num"><b>${fmt(total,0)}</b></td><td class="num pct-col"><b>${fmt(total/yearTotal*100,1)}%</b></td>`;
+      tb.appendChild(tr); rowCount++;
+    });
+  });
+  if(status) status.textContent=`Loaded ${rowCount} channel × style row(s) across ${channels.length} channel(s).`;
+}
 function setFocusMonth(v){state.focusMonth=String(v);saveState();renderLiveForecast();}
-function resetAllDynamicForecast(){ state.dynamicForecast=deepCopy(FORECAST); appendChangeLog('Dynamic forecast reset to original forecast'); saveState(); renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); renderMonthlySummary(); }
-function renderLiveForecast(){const tb=document.querySelector('#forecastLiveTable tbody'); if(!tb) return; tb.innerHTML=''; const data=getForecastData(); const focus=state.focusMonth===undefined?'':state.focusMonth; const focusSel=document.getElementById('focusMonthSel'); if(focusSel) focusSel.value=focus; for(const [channel,styles] of Object.entries(FORECAST)){ const monthTotals=MONTHS.map((_,i)=>channelMonthTotal(data,channel,i)); const yearTotal=channelYearTotal(data,channel)||1; for(const [style,baseArr] of Object.entries(styles)){ const liveArr=((data[channel]||{})[style]||baseArr); const tr=document.createElement('tr'); let cells=`<td class="left">${channel}</td><td class="left">${style}</td>`; liveArr.forEach((v,i)=>{ const changed=Number(v)!==Number(baseArr[i]||0); const showMix=(focus==='' || Number(focus)===i); cells += `<td class="num ${Number(focus)===i?'month-focus':''}"><input class="cell-edit ${changed?'changed-cell':''}" data-channel="${channel}" data-style="${style}" data-month="${i}" type="number" value="${Number(v||0)}"><div><button type="button" class="secondary alloc-btn" onclick="selectAllocation('${channel}','${style}',${i})">Plan</button>${changed?` <button type="button" class="secondary" onclick="resetForecastCell('${channel}','${style}',${i})">Reset</button>`:''}</div><span class="mix ${showMix?'':'hidden-mix'}">Mix ${fmt((Number(v||0)/Math.max(monthTotals[i],1))*100,1)}%</span></td>`; }); const total=liveArr.reduce((a,b)=>a+Number(b||0),0); cells += `<td class="num"><b>${fmt(total,0)}</b></td><td class="num pct-col"><b>${fmt(total/yearTotal*100,1)}%</b></td>`; tr.innerHTML=cells; tb.appendChild(tr);} } document.querySelectorAll('#forecastLiveTable .cell-edit').forEach(inp=>{ inp.addEventListener('focus',e=>{state.focusMonth=e.target.dataset.month; saveState(); document.getElementById('focusMonthSel').value=state.focusMonth; document.querySelectorAll('#forecastLiveTable .mix').forEach(x=>x.classList.add('hidden-mix')); document.querySelectorAll(`#forecastLiveTable .cell-edit[data-month="${state.focusMonth}"]`).forEach(el=>{const mix=el.parentElement.querySelector('.mix'); if(mix) mix.classList.remove('hidden-mix');}); }); inp.addEventListener('change',e=>{ const ch=e.target.dataset.channel, style=e.target.dataset.style, m=Number(e.target.dataset.month), val=Number(e.target.value||0); state.dynamicForecast[ch][style][m]=val; const key=allocationKey(ch,style,m); if(state.allocations[key]) state.allocations[key].monthTarget=val; state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'forecast', channel:ch, style, month:m, value:val, by:state.currentUser}); saveState(); if(state.selectedAlloc && state.selectedAlloc.channel===ch && state.selectedAlloc.style===style && state.selectedAlloc.monthIdx===m){ ensureAllocation(ch,style,m); } renderLiveForecast(); renderAllocationPanel(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); }); inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.target.blur();} }); }); renderAllocationPanel();}
-function resetForecastCell(channel,style,monthIdx){ const base=Number((FORECAST[channel]||{})[style]?.[monthIdx]||0); if(!state.dynamicForecast[channel]) state.dynamicForecast[channel]={}; if(!state.dynamicForecast[channel][style]) state.dynamicForecast[channel][style]=JSON.parse(JSON.stringify((FORECAST[channel]||{})[style]||Array(12).fill(0))); state.dynamicForecast[channel][style][monthIdx]=base; const key=allocationKey(channel,style,monthIdx); delete state.allocations[key]; state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'reset', channel, style, month:monthIdx, value:base, by:state.currentUser}); saveState(); renderLiveForecast(); renderAllocationPanel(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); }
+function resetAllDynamicForecast(){
+  state.dynamicForecast={};
+  appendChangeLog('Cleared all dynamic forecast overrides');
+  saveState();
+  renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary(); renderMonthlySummary();
+}
+function renderLiveForecast(){
+  const tb=document.querySelector('#forecastLiveTable tbody'); if(!tb) return;
+  tb.innerHTML='';
+  const data=getForecastData();
+  const focus=state.focusMonth===undefined?'':state.focusMonth;
+  const focusSel=document.getElementById('focusMonthSel'); if(focusSel) focusSel.value=focus;
+  const channels=Object.keys(data).sort();
+  if(!channels.length){
+    tb.innerHTML=`<tr><td class="left" colspan="16">No forecast yet. Refresh BC data or import a baseline.</td></tr>`;
+    renderAllocationPanel();
+    return;
+  }
+  channels.forEach(channel=>{
+    const styles=data[channel]||{};
+    const monthTotals=MONTHS.map((_,i)=>channelMonthTotal(data,channel,i));
+    const yearTotal=channelYearTotal(data,channel)||1;
+    Object.keys(styles).sort().forEach(style=>{
+      const liveArr=styles[style]||Array(12).fill(0);
+      const tr=document.createElement('tr');
+      let cells=`<td class="left">${channel}</td><td class="left">${style}</td>`;
+      liveArr.forEach((v,i)=>{
+        const overridden=hasForecastOverride(channel,style,i);
+        const showMix=(focus==='' || Number(focus)===i);
+        cells += `<td class="num ${Number(focus)===i?'month-focus':''}"><input class="cell-edit ${overridden?'changed-cell':''}" data-channel="${channel}" data-style="${style}" data-month="${i}" type="number" value="${Number(v||0)}"><div><button type="button" class="secondary alloc-btn" onclick="selectAllocation('${channel.replace(/'/g,"\\'")}','${style.replace(/'/g,"\\'")}',${i})">Plan</button>${overridden?` <button type="button" class="secondary" onclick="resetForecastCell('${channel.replace(/'/g,"\\'")}','${style.replace(/'/g,"\\'")}',${i})">Reset</button>`:''}</div><span class="mix ${showMix?'':'hidden-mix'}">Mix ${fmt((Number(v||0)/Math.max(monthTotals[i],1))*100,1)}%</span></td>`;
+      });
+      const total=liveArr.reduce((a,b)=>a+Number(b||0),0);
+      cells += `<td class="num"><b>${fmt(total,0)}</b></td><td class="num pct-col"><b>${fmt(total/yearTotal*100,1)}%</b></td>`;
+      tr.innerHTML=cells; tb.appendChild(tr);
+    });
+  });
+  document.querySelectorAll('#forecastLiveTable .cell-edit').forEach(inp=>{
+    inp.addEventListener('focus',e=>{state.focusMonth=e.target.dataset.month; saveState(); document.getElementById('focusMonthSel').value=state.focusMonth; document.querySelectorAll('#forecastLiveTable .mix').forEach(x=>x.classList.add('hidden-mix')); document.querySelectorAll(`#forecastLiveTable .cell-edit[data-month="${state.focusMonth}"]`).forEach(el=>{const mix=el.parentElement.querySelector('.mix'); if(mix) mix.classList.remove('hidden-mix');}); });
+    inp.addEventListener('change',e=>{
+      const ch=e.target.dataset.channel, style=e.target.dataset.style, m=Number(e.target.dataset.month), val=Number(e.target.value||0);
+      const baseVal=forecastBaseValue(ch,style,m);
+      // Sparse override: only record a delta. If user-entered value matches the
+      // BC+baseline merged base, remove the override entirely so the cell reverts.
+      if(Number(val)===Number(baseVal)){
+        if(state.dynamicForecast[ch] && state.dynamicForecast[ch][style]){ delete state.dynamicForecast[ch][style][m]; if(!Object.keys(state.dynamicForecast[ch][style]).length) delete state.dynamicForecast[ch][style]; if(!Object.keys(state.dynamicForecast[ch]).length) delete state.dynamicForecast[ch]; }
+      } else {
+        if(!state.dynamicForecast[ch]) state.dynamicForecast[ch]={};
+        if(!state.dynamicForecast[ch][style]) state.dynamicForecast[ch][style]={};
+        state.dynamicForecast[ch][style][m]=val;
+      }
+      const key=allocationKey(ch,style,m); if(state.allocations[key]) state.allocations[key].monthTarget=val;
+      state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'forecast', channel:ch, style, month:m, value:val, by:state.currentUser});
+      saveState();
+      if(state.selectedAlloc && state.selectedAlloc.channel===ch && state.selectedAlloc.style===style && state.selectedAlloc.monthIdx===m){ ensureAllocation(ch,style,m); }
+      renderLiveForecast(); renderAllocationPanel(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary();
+    });
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.target.blur();} });
+  });
+  renderAllocationPanel();
+}
+function resetForecastCell(channel,style,monthIdx){
+  if(state.dynamicForecast[channel] && state.dynamicForecast[channel][style]){
+    delete state.dynamicForecast[channel][style][monthIdx];
+    if(!Object.keys(state.dynamicForecast[channel][style]).length) delete state.dynamicForecast[channel][style];
+    if(!Object.keys(state.dynamicForecast[channel]).length) delete state.dynamicForecast[channel];
+  }
+  const key=allocationKey(channel,style,monthIdx); delete state.allocations[key];
+  const newVal=forecastBaseValue(channel,style,monthIdx);
+  state.changeLog=(state.changeLog||[]); state.changeLog.push({ts:new Date().toISOString(), type:'reset', channel, style, month:monthIdx, value:newVal, by:state.currentUser});
+  saveState();
+  renderLiveForecast(); renderAllocationPanel(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary();
+}
 function renderDailyStaffInputs(){const wrap=document.getElementById('dailyStaffInputs'); wrap.innerHTML=''; const user=USERS[state.currentUser]; const depts=(user&&user.depts)||DEPTS; depts.forEach(dep=>{ const id=dep.replace(/\s/g,'_'); const div=document.createElement('div'); div.style.marginBottom='10px'; div.innerHTML=`<div class="small" style="font-weight:700;color:#1d2433;margin-bottom:4px">${dep}</div><div class="three"><div><label>Scheduled</label><input id="sched_${id}" type="number" min="0" step="1" value="${dep==='Sewing'?8:dep==='Cut'?3:dep==='Hang Tag'?3:dep==='Value Added'?1:2}" oninput="renderDailyPlanner()"></div><div><label>Callouts</label><input id="call_${id}" type="number" min="0" step="1" value="0" oninput="renderDailyPlanner()"></div><div><label>OT hrs/person</label><input id="ot_${id}" type="number" min="0" step="0.5" value="0" oninput="renderDailyPlanner()"></div></div>`; wrap.appendChild(div);});}
 function renderDailyPlanner(){const date=document.getElementById('plannerDate').value||new Date().toISOString().slice(0,10); document.getElementById('plannerDate').value=date; document.getElementById('plannerWeek').value=weekNumber(date); document.getElementById('plannerWeekRange').value=monthWeekRange(date); document.getElementById('plannerMonth').value=monthLabelFromDate(date); const reqHours=forecastHoursForDate(date); let forecastUnits=forecastUnitsForDate(date); const override=Number(document.getElementById('plannerUnitsOverride').value||0); if(override>0){ const ratio=override/(forecastUnits||1); forecastUnits=override; DEPTS.forEach(d=>reqHours[d]*=ratio); }
   const tb=document.querySelector('#dailyPlannerTable tbody'); tb.innerHTML=''; let totalReq=0,totalAvail=0,headsShort=0; DEPTS.forEach(dep=>{const id=dep.replace(/\s/g,'_'); const sched=Number(document.getElementById('sched_'+id)?.value||0); const call=Number(document.getElementById('call_'+id)?.value||0); const ot=Number(document.getElementById('ot_'+id)?.value||0); const net=Math.max(0,sched-call); const avail=net*(7.5+ot); const req=reqHours[dep]||0; totalReq+=req; totalAvail+=avail; const gap=avail-req; const short=Math.max(0,(req-avail)/7.5); headsShort+=short; const status=gap>=0?'Green':gap>=-4?'Yellow':'Red'; const tr=document.createElement('tr'); tr.innerHTML=`<td class="left">${dep}</td><td class="num">${fmt(req,1)}</td><td>${fmt(sched,0)}</td><td>${fmt(call,0)}</td><td>${fmt(net,0)}</td><td class="num">${fmt(avail,1)}</td><td class="num">${fmt(gap,1)}</td><td>${statusPill(status)}</td>`; tb.appendChild(tr);}); const gapH=totalAvail-totalReq; const overall=gapH>=0?'Green':gapH>=-8?'Yellow':'Red'; document.getElementById('dpUnits').textContent=fmt(forecastUnits,0); document.getElementById('dpReqHours').textContent=fmt(totalReq,1); document.getElementById('dpAvailHours').textContent=fmt(totalAvail,1); document.getElementById('dpGapHours').textContent=fmt(gapH,1); document.getElementById('dpHeadsShort').textContent=fmt(headsShort,1); document.getElementById('dpRisk').innerHTML=statusPill(overall);} 
@@ -622,17 +806,161 @@ function renderExecutiveSnapshot(){}
 
 function initUI(){loadState(); initSelectors(); renderTabs(); renderForecast(); renderLiveForecast(); renderDailyStaffInputs(); if(!document.getElementById('plannerDate').value) document.getElementById('plannerDate').value=new Date().toISOString().slice(0,10); renderDailyPlanner(); renderSkills(); renderExecutiveSnapshot(); renderWeeklySummary(); seedReportTable(); renderCalendar(); renderAdmin(); renderYanaTab(); renderChangeLogViews(); document.getElementById('reportDate').value=document.getElementById('plannerDate').value||new Date().toISOString().slice(0,10); if(document.getElementById('reportBy')) document.getElementById('reportBy').value=(state.currentUser||'admin').charAt(0).toUpperCase()+(state.currentUser||'admin').slice(1); const scope=document.getElementById('supervisorScopeNote'); if(scope){ scope.textContent = state.currentUser==='tonya' ? 'Tonya departments: Sew, Hang Tag, Value Add' : state.currentUser==='gabe' ? 'Gabe departments: Print, Press, Cut, Fulfillment' : 'Supervisor entry by channel with totals for all channels.'; } document.getElementById('reportWeek').value=weekNumber(document.getElementById('reportDate').value); document.getElementById('reportMonth').value=monthLabelFromDate(document.getElementById('reportDate').value); loadReportFromPlanner(); fetchBcData();}
 
+// Build state.bcForecast[channel][style][monthIdx] by summing openDemand daily
+// units into their calendar months. bc_data.json is the only source — we never
+// persist this to localStorage (rebuilt on every page load by fetchBcData).
+function applyBcForecast(bcData){
+  const out={};
+  const demand=(bcData && bcData.openDemand) || {};
+  for(const [ch,styles] of Object.entries(demand)){
+    for(const [style,dates] of Object.entries(styles||{})){
+      const arr=Array(12).fill(0);
+      let any=false;
+      for(const [dateStr,units] of Object.entries(dates||{})){
+        const d=new Date(dateStr+'T00:00:00');
+        const m=d.getMonth();
+        if(m>=0 && m<12){ arr[m]+=Number(units||0); any=true; }
+      }
+      if(any){ if(!out[ch]) out[ch]={}; out[ch][style]=arr; }
+    }
+  }
+  state.bcForecast=out;
+}
+
 async function fetchBcData(){
   try {
     const resp = await fetch('bc_data.json', {cache: 'no-store'});
     if (!resp.ok) throw new Error('bc_data.json HTTP ' + resp.status);
     window.__bcData = await resp.json();
+    applyBcForecast(window.__bcData);
     renderBcLiveCard();
+    renderForecast();
+    renderLiveForecast();
+    renderDailyPlanner();
+    renderWeeklySummary();
   } catch (e) {
     console.warn('BC data fetch failed:', e);
     const el = document.getElementById('bcLastRefreshed');
     if (el) el.textContent = 'BC data unavailable (' + e.message + ')';
   }
+}
+
+// Baseline import/export helpers — wired to the Baseline Sales Forecast toolbar.
+// Baseline is a 12-month plan per channel × style, stored as
+// state.baselineForecast[channel][style] = [12 numbers]. Persisted in
+// localStorage via saveState(). Empty state is valid (no plan imported yet).
+function setBaselineStatus(msg){
+  const el=document.getElementById('baselineStatus');
+  if(el) el.textContent=msg||'';
+}
+function normalizeBaselineInput(obj){
+  // Accept {channel:{style:[12]}} or {channel:{style:{m:value}}} and coerce to
+  // 12-element arrays. Unknown channels are kept (warn in UI) so the user can
+  // fix their feed without the app silently dropping data.
+  const out={};
+  if(!obj || typeof obj!=='object') return out;
+  for(const [ch,styles] of Object.entries(obj)){
+    if(!styles || typeof styles!=='object') continue;
+    const chOut={};
+    for(const [style,v] of Object.entries(styles)){
+      const arr=Array(12).fill(0);
+      if(Array.isArray(v)){ for(let i=0;i<12;i++) arr[i]=Number(v[i]||0); }
+      else if(v && typeof v==='object'){ for(const [mk,val] of Object.entries(v)){ const m=+mk; if(m>=0 && m<12) arr[m]=Number(val||0); } }
+      chOut[style]=arr;
+    }
+    if(Object.keys(chOut).length) out[ch]=chOut;
+  }
+  return out;
+}
+function baselineUnknownChannels(baseline){
+  const known=new Set(CHANNELS);
+  return Object.keys(baseline).filter(c=>!known.has(c));
+}
+function importBaselineCsvFile(event){
+  const file=event.target.files && event.target.files[0];
+  if(!file){ return; }
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const text=String(reader.result||'');
+      const lines=text.split(/\r?\n/).filter(l=>l.trim().length);
+      if(!lines.length){ setBaselineStatus('CSV was empty.'); return; }
+      const header=lines[0].split(',').map(s=>s.trim().toLowerCase());
+      const chIdx=header.indexOf('channel'); const stIdx=header.indexOf('style');
+      if(chIdx<0 || stIdx<0){ setBaselineStatus('CSV must include "channel" and "style" columns.'); return; }
+      const monthIdx=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].map(m=>header.indexOf(m));
+      if(monthIdx.some(i=>i<0)){ setBaselineStatus('CSV must include columns Jan..Dec.'); return; }
+      const obj={};
+      for(let i=1;i<lines.length;i++){
+        const cols=lines[i].split(',');
+        const ch=(cols[chIdx]||'').trim(); const st=(cols[stIdx]||'').trim();
+        if(!ch || !st) continue;
+        const arr=monthIdx.map(ci=>Number((cols[ci]||'0').trim()||0));
+        if(!obj[ch]) obj[ch]={}; obj[ch][st]=arr;
+      }
+      state.baselineForecast=normalizeBaselineInput(obj);
+      saveState();
+      const unknown=baselineUnknownChannels(state.baselineForecast);
+      appendChangeLog('Imported baseline forecast from CSV ('+Object.keys(state.baselineForecast).length+' channels)');
+      setBaselineStatus('Loaded '+Object.keys(state.baselineForecast).length+' channel(s) from CSV'+(unknown.length?' · unknown channels: '+unknown.join(', '):'.'));
+      renderForecast(); renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary();
+    } catch(e){ setBaselineStatus('CSV parse failed: '+e.message); }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+function openBaselineJsonDialog(){
+  const dlg=document.getElementById('baselineJsonDialog');
+  if(!dlg) return;
+  dlg.classList.toggle('hidden');
+  if(!dlg.classList.contains('hidden')){
+    const ta=document.getElementById('baselineJsonInput');
+    if(ta && !ta.value && Object.keys(state.baselineForecast||{}).length){ ta.value=JSON.stringify(state.baselineForecast,null,2); }
+  }
+}
+function importBaselineJsonPaste(){
+  const ta=document.getElementById('baselineJsonInput');
+  const raw=(ta && ta.value || '').trim();
+  if(!raw){ setBaselineStatus('Paste a JSON object first.'); return; }
+  try{
+    const parsed=JSON.parse(raw);
+    state.baselineForecast=normalizeBaselineInput(parsed);
+    saveState();
+    const unknown=baselineUnknownChannels(state.baselineForecast);
+    appendChangeLog('Imported baseline forecast from JSON paste ('+Object.keys(state.baselineForecast).length+' channels)');
+    setBaselineStatus('Loaded '+Object.keys(state.baselineForecast).length+' channel(s) from JSON'+(unknown.length?' · unknown channels: '+unknown.join(', '):'.'));
+    document.getElementById('baselineJsonDialog').classList.add('hidden');
+    renderForecast(); renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary();
+  } catch(e){ setBaselineStatus('JSON parse failed: '+e.message); }
+}
+function loadDemoBaseline(){
+  // DEMO_BASELINE uses legacy V20 channel names (Ecomm, Amazon…) — remap to BC
+  // codes before storing so downstream merges hit the right channel key.
+  const remapped={};
+  for(const [legacyCh,styles] of Object.entries(DEMO_BASELINE)){
+    const ch=LEGACY_CHANNEL_MAP[legacyCh] || legacyCh;
+    remapped[ch]={...(styles||{})};
+  }
+  state.baselineForecast=normalizeBaselineInput(remapped);
+  saveState();
+  appendChangeLog('Loaded demo baseline into baseline forecast');
+  setBaselineStatus('Demo baseline loaded — '+Object.keys(state.baselineForecast).length+' channel(s).');
+  renderForecast(); renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary();
+}
+function exportBaselineJson(){
+  const blob=new Blob([JSON.stringify(state.baselineForecast||{},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='baseline_forecast_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function clearBaseline(){
+  if(!Object.keys(state.baselineForecast||{}).length){ setBaselineStatus('Baseline was already empty.'); return; }
+  if(!confirm('Clear the entire baseline forecast? Dynamic overrides stay, but BC-only months will show zero baseline.')) return;
+  state.baselineForecast={};
+  saveState();
+  appendChangeLog('Cleared baseline forecast');
+  setBaselineStatus('Baseline cleared.');
+  renderForecast(); renderLiveForecast(); renderExecutiveSnapshot(); renderDailyPlanner(); renderWeeklySummary();
 }
 
 function renderBcLiveCard(){
